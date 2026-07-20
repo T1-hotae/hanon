@@ -37,14 +37,25 @@ export const getInitialNotices = async (): Promise<Notice[]> => {
   return mockNotices
 }
 
-export const createPhoneInquiry = (
+export const createInquiry = (
+  source: 'chat' | 'phone',
   category: CategoryId,
   questionText: string,
-): Inquiry => ({
-  id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-  source: 'phone',
-  category,
-  questionText,
-  status: 'pending',
-  createdAt: Date.now(),
-})
+  answer?: { answerText: string; relatedNoticeIds: string[] },
+): Inquiry => {
+  const now = Date.now()
+  return {
+    id: `local-${now}-${Math.random().toString(36).slice(2, 8)}`,
+    source,
+    category,
+    questionText,
+    status: answer ? 'answered' : 'pending',
+    createdAt: now,
+    answerText: answer?.answerText,
+    relatedNoticeIds: answer?.relatedNoticeIds,
+    answeredAt: answer ? now : undefined,
+  }
+}
+
+export const createPhoneInquiry = (category: CategoryId, questionText: string): Inquiry =>
+  createInquiry('phone', category, questionText)

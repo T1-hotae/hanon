@@ -9,6 +9,7 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom'
+import { ChatWidget } from './components/ChatWidget'
 import { AcademicDataProvider } from './context/AcademicDataContext'
 import { useAcademicData } from './context/useAcademicData'
 import { presetQuestions } from './mock/presetQuestions'
@@ -83,6 +84,7 @@ function Layout({ children }: { children: ReactNode }) {
         )}
         {children}
       </main>
+      <ChatWidget />
     </>
   )
 }

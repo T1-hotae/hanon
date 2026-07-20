@@ -7,6 +7,11 @@ export type AcademicDataValue = {
   loading: boolean
   usingMockData: boolean
   addPhoneInquiry: (category: CategoryId, questionText: string) => void
+  addChatInquiry: (
+    category: CategoryId,
+    questionText: string,
+    answer?: { answerText: string; relatedNoticeIds: string[] },
+  ) => void
   answerInquiryGroup: (
     questionText: string,
     category: CategoryId,

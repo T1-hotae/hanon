@@ -334,12 +334,17 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   grid-column: 1;
-  min-height: 86px;
-  padding: 18px 24px;
+  min-height: 130px;
+  padding: 28px 32px;
+}
+
+.categoryHero h1 {
+  font-size: clamp(30px, 5vw, 42px);
 }
 
 .callCard {
   align-self: end;
+  align-items: center;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -347,9 +352,10 @@
   color: var(--color-text);
   cursor: pointer;
   display: grid;
+  gap: 8px;
   grid-column: 3;
-  min-height: 86px;
-  padding: 16px 18px;
+  min-height: 130px;
+  padding: 24px 22px;
   text-align: center;
   transition: box-shadow var(--transition), transform var(--transition), border-color var(--transition);
 }
@@ -362,7 +368,13 @@
 
 .callCard strong {
   color: var(--color-primary);
-  font-size: 18px;
+  font-size: 22px;
+}
+
+.callCard span {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .twoColumn {
@@ -677,6 +689,172 @@ mark {
   font-weight: 600;
   min-height: 100vh;
   justify-content: center;
+}
+
+.chatWidget {
+  bottom: 24px;
+  position: fixed;
+  right: 24px;
+  z-index: 40;
+}
+
+.chatToggle {
+  background: var(--color-primary);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--shadow-md);
+  color: #ffffff;
+  cursor: pointer;
+  float: right;
+  font: inherit;
+  font-weight: 700;
+  padding: 14px 22px;
+  transition: background-color var(--transition), transform var(--transition);
+}
+
+.chatToggle:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-2px);
+}
+
+.chatPanel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  clear: both;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 480px;
+  margin-bottom: 12px;
+  width: 340px;
+}
+
+.chatHeader {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+
+.chatHeader strong {
+  color: var(--color-text);
+}
+
+.chatHeader button {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.chatBody {
+  display: grid;
+  gap: 10px;
+  overflow-y: auto;
+  padding: 14px 18px;
+}
+
+.chatBubbleBot,
+.chatBubbleUser {
+  border-radius: var(--radius-md);
+  max-width: 85%;
+  padding: 10px 14px;
+}
+
+.chatBubbleBot p,
+.chatBubbleUser p {
+  margin: 0;
+}
+
+.chatBubbleBot {
+  background: var(--color-bg);
+  color: var(--color-text);
+  justify-self: start;
+}
+
+.chatBubbleBot ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.chatBubbleBot a {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.chatBubbleUser {
+  background: var(--color-primary);
+  color: #ffffff;
+  justify-self: end;
+}
+
+.chatOptions {
+  border-top: 1px solid var(--color-border);
+  padding: 12px 18px;
+}
+
+.chatQuickGrid {
+  display: grid;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.chatQuickGrid button {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  padding: 9px 12px;
+  text-align: left;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.chatQuickGrid button:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.chatCustomForm {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr auto;
+}
+
+.chatCustomForm input {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  padding: 10px 12px;
+}
+
+.chatCustomForm button {
+  background: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0 16px;
+}
+
+@media (max-width: 420px) {
+  .chatWidget {
+    left: 16px;
+    right: 16px;
+  }
+
+  .chatPanel {
+    width: 100%;
+  }
 }
 
 @media (max-width: 720px) {

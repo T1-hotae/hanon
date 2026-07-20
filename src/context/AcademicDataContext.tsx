@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
+  createInquiry,
   createPhoneInquiry,
   getInitialInquiries,
   getInitialNotices,
@@ -31,6 +32,12 @@ export const AcademicDataProvider = ({ children }: { children: ReactNode }) => {
       addPhoneInquiry: (category, questionText) => {
         setInquiries((current) => [
           createPhoneInquiry(category, questionText),
+          ...current,
+        ])
+      },
+      addChatInquiry: (category, questionText, answer) => {
+        setInquiries((current) => [
+          createInquiry('chat', category, questionText, answer),
           ...current,
         ])
       },
