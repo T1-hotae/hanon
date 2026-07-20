@@ -1,0 +1,557 @@
+.header {
+  align-items: center;
+  background: #ffffff;
+  border-bottom: 1px solid #dde3ea;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: auto minmax(220px, 1fr) auto;
+  padding: 16px clamp(16px, 4vw, 48px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.logo {
+  color: #102033;
+  font-size: 22px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.searchForm {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr auto;
+}
+
+.searchForm input,
+.customQuestion input,
+.formBlock textarea,
+.sectionTitle select {
+  border: 1px solid #cbd5df;
+  border-radius: 6px;
+  font: inherit;
+  min-width: 0;
+  padding: 12px 14px;
+}
+
+.searchForm button,
+.modeToggle,
+.primaryAction,
+.modalActions a,
+.modalActions button,
+.emptyState > button,
+.customQuestion button {
+  background: #174a7c;
+  border: 0;
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 12px 16px;
+  text-decoration: none;
+}
+
+.modeToggle {
+  background: #263340;
+}
+
+.shell {
+  margin: 0 auto;
+  max-width: 1120px;
+  padding: 24px clamp(14px, 4vw, 48px) 56px;
+}
+
+.mockNotice {
+  background: #fff7e1;
+  border: 1px solid #e8c979;
+  border-radius: 6px;
+  color: #674800;
+  margin-bottom: 18px;
+  padding: 10px 12px;
+}
+
+.introBand,
+.categoryHero,
+.section,
+.adminToolbar,
+.tableWrap {
+  background: #ffffff;
+  border: 1px solid #dde5ed;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  padding: clamp(18px, 4vw, 28px);
+}
+
+.introBand h1,
+.categoryHero h1,
+.section h1,
+.adminToolbar h1 {
+  color: #102033;
+  font-size: clamp(28px, 5vw, 44px);
+  line-height: 1.18;
+  margin: 0 0 20px;
+}
+
+.eyebrow {
+  color: #55728f;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin: 0 0 8px;
+}
+
+.quickGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.quickChip {
+  background: #eef6f5;
+  border: 1px solid #bed6d2;
+  border-radius: 8px;
+  color: #102033;
+  display: grid;
+  min-height: 104px;
+  padding: 16px;
+  text-decoration: none;
+}
+
+.quickChip strong {
+  font-size: 21px;
+}
+
+.quickChip span {
+  color: #45606f;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.sectionTitle,
+.adminToolbar,
+.answerHeader {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.sectionTitle h1,
+.sectionTitle h2,
+.section h2 {
+  margin: 0 0 16px;
+}
+
+.sectionTitle a {
+  color: #174a7c;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.rankList,
+.searchResults,
+.accordion {
+  display: grid;
+  gap: 10px;
+}
+
+.rankRow,
+.searchResults a {
+  align-items: center;
+  background: #f7f9fb;
+  border: 1px solid #e0e7ee;
+  border-radius: 8px;
+  color: #102033;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 36px 1fr auto;
+  padding: 14px;
+  text-decoration: none;
+}
+
+.rankRow span,
+.searchResults span {
+  align-items: center;
+  background: #174a7c;
+  border-radius: 999px;
+  color: white;
+  display: inline-flex;
+  font-weight: 800;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.rankRow em,
+.searchResults em {
+  color: #5a6d7d;
+  font-style: normal;
+}
+
+.noticeList {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.noticeList li {
+  align-items: center;
+  border-top: 1px solid #e6ebf0;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr auto;
+  padding: 13px 0;
+}
+
+.noticeList a {
+  color: #102033;
+  text-decoration: none;
+}
+
+.noticeList time {
+  color: #617487;
+  white-space: nowrap;
+}
+
+.categoryHero {
+  align-items: stretch;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1fr 280px;
+}
+
+.categoryHero p {
+  color: #506577;
+  margin: 0;
+}
+
+.callCard {
+  background: #1e6f68;
+  border: 0;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  display: grid;
+  padding: 22px;
+  text-align: left;
+}
+
+.callCard strong {
+  font-size: 22px;
+}
+
+.twoColumn {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.75fr);
+}
+
+.faqItem {
+  border: 1px solid #dce5ed;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.faqItem > button {
+  align-items: center;
+  background: #ffffff;
+  border: 0;
+  color: #102033;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-weight: 800;
+  justify-content: space-between;
+  padding: 16px;
+  text-align: left;
+  width: 100%;
+}
+
+.faqItem em {
+  color: #62778a;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.faqBody {
+  background: #f7fafc;
+  border-top: 1px solid #dce5ed;
+  line-height: 1.65;
+  padding: 16px;
+}
+
+.faqBody ul {
+  margin-bottom: 0;
+}
+
+.faqBody a {
+  color: #174a7c;
+  font-weight: 700;
+}
+
+.modalBackdrop {
+  align-items: center;
+  background: rgb(14 24 36 / 55%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 20px;
+  position: fixed;
+  z-index: 30;
+}
+
+.modal {
+  background: white;
+  border-radius: 8px;
+  max-width: 420px;
+  padding: 24px;
+  width: 100%;
+}
+
+.phoneNumber {
+  color: #174a7c;
+  font-size: 30px;
+  font-weight: 900;
+  margin: 12px 0;
+}
+
+.modalActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.modalActions button {
+  background: #64748b;
+}
+
+.emptyState {
+  background: #f7f9fb;
+  border: 1px dashed #b8c5d1;
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.resultMeta {
+  color: #617487;
+}
+
+.adminToolbar {
+  display: flex;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tabs button,
+.largeButtonGrid button {
+  background: #ffffff;
+  border: 1px solid #cbd5df;
+  border-radius: 8px;
+  color: #102033;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 12px 16px;
+}
+
+.tabs .activeTab,
+.largeButtonGrid .selectedButton {
+  background: #174a7c;
+  border-color: #174a7c;
+  color: #ffffff;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  padding: 0;
+}
+
+table {
+  border-collapse: collapse;
+  min-width: 760px;
+  width: 100%;
+}
+
+th,
+td {
+  border-bottom: 1px solid #e1e8ef;
+  padding: 14px;
+  text-align: left;
+}
+
+tbody tr {
+  cursor: pointer;
+}
+
+tbody tr:hover {
+  background: #f7f9fb;
+}
+
+td span {
+  color: #637485;
+  display: block;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+mark {
+  border-radius: 999px;
+  display: inline-flex;
+  font-weight: 800;
+  padding: 6px 10px;
+}
+
+.pending {
+  background: #ffe3e1;
+  color: #9b1c1c;
+}
+
+.answered {
+  background: #dff3e8;
+  color: #17673a;
+}
+
+.callLogger {
+  display: grid;
+  gap: 24px;
+}
+
+.largeButtonGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.largeButtonGrid button {
+  min-height: 82px;
+  text-align: center;
+}
+
+.customQuestion,
+.formBlock {
+  display: grid;
+  gap: 10px;
+}
+
+.formBlock {
+  font-weight: 800;
+  margin: 18px 0;
+}
+
+.formBlock textarea {
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.noticePicker {
+  border: 1px solid #dce5ed;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 18px;
+}
+
+.noticePicker legend {
+  font-weight: 800;
+  padding: 0 8px;
+}
+
+.noticePicker label {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+}
+
+.toast {
+  background: #102033;
+  border-radius: 8px;
+  bottom: 24px;
+  color: white;
+  font-weight: 800;
+  left: 50%;
+  padding: 14px 18px;
+  position: fixed;
+  transform: translateX(-50%);
+}
+
+.loading {
+  align-items: center;
+  color: #102033;
+  display: flex;
+  font-weight: 800;
+  min-height: 100vh;
+  justify-content: center;
+}
+
+@media (max-width: 720px) {
+  .header {
+    grid-template-columns: 1fr auto;
+  }
+
+  .searchForm {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .quickGrid,
+  .largeButtonGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .categoryHero,
+  .twoColumn {
+    grid-template-columns: 1fr;
+  }
+
+  .rankRow,
+  .searchResults a,
+  .noticeList li {
+    align-items: start;
+    grid-template-columns: auto 1fr;
+  }
+
+  .rankRow em,
+  .searchResults em,
+  .noticeList time {
+    grid-column: 2;
+  }
+
+  .sectionTitle,
+  .adminToolbar,
+  .answerHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 420px) {
+  .shell {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .quickChip {
+    min-height: 118px;
+    padding: 14px;
+  }
+
+  .quickChip strong {
+    font-size: 18px;
+  }
+
+  .largeButtonGrid {
+    grid-template-columns: 1fr;
+  }
+}
