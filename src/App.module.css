@@ -317,9 +317,9 @@
   background: transparent;
   border: 0;
   box-shadow: none;
-  display: grid;
-  gap: 20px;
-  grid-template-columns: 320px 1fr 260px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(20px, 4vw, 60px);
   padding: 0;
 }
 
@@ -333,7 +333,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  grid-column: 1;
+  flex: 1 1 320px;
+  max-width: 480px;
   min-height: 130px;
   padding: 28px 32px;
 }
@@ -343,7 +344,6 @@
 }
 
 .callCard {
-  align-self: end;
   align-items: center;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -352,8 +352,8 @@
   color: var(--color-text);
   cursor: pointer;
   display: grid;
+  flex: 0 1 260px;
   gap: 8px;
-  grid-column: 3;
   min-height: 130px;
   padding: 24px 22px;
   text-align: center;
@@ -877,14 +877,14 @@ mark {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .categoryHero,
   .twoColumn {
     grid-template-columns: 1fr;
   }
 
   .categoryHero > div,
   .callCard {
-    grid-column: auto;
+    flex-basis: 100%;
+    max-width: none;
   }
 
   .keywordArea {

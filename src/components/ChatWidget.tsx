@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useAcademicData } from '../context/useAcademicData'
 import { presetQuestions } from '../mock/presetQuestions'
 import { groupInquiries } from '../services/analytics'
@@ -29,8 +29,14 @@ export function ChatWidget() {
   const [category, setCategory] = useState<CategoryId | null>(null)
   const [customMode, setCustomMode] = useState(false)
   const [customText, setCustomText] = useState('')
+  const bodyRef = useRef<HTMLDivElement>(null)
 
   const groups = useMemo(() => groupInquiries(inquiries, 'all'), [inquiries])
+
+  useEffect(() => {
+    if (!open) return
+    bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight })
+  }, [messages, open])
 
   const pushBot = (text: string, noticeIds?: string[]) => {
     const related = noticeIds?.length
@@ -99,7 +105,7 @@ export function ChatWidget() {
               ×
             </button>
           </div>
-          <div className={styles.chatBody}>
+          <div className={styles.chatBody} ref={bodyRef}>
             {messages.map((message) => (
               <div
                 key={message.id}
