@@ -1,23 +1,24 @@
 import { createContext } from 'react'
-import type { CategoryId, Inquiry, Notice } from '../types/academic'
+import type {
+  Category,
+  CategoryId,
+  Checklist,
+  FaqEntry,
+  Inquiry,
+  Notice,
+  PresetQuestion,
+} from '../types/academic'
 
 export type AcademicDataValue = {
+  categories: Category[]
+  keywordPresets: PresetQuestion[]
+  faqEntries: FaqEntry[]
+  checklists: Checklist[]
   inquiries: Inquiry[]
   notices: Notice[]
   loading: boolean
   usingMockData: boolean
-  addPhoneInquiry: (category: CategoryId, questionText: string) => void
-  addChatInquiry: (
-    category: CategoryId,
-    questionText: string,
-    answer?: { answerText: string; relatedNoticeIds: string[] },
-  ) => void
-  answerInquiryGroup: (
-    questionText: string,
-    category: CategoryId,
-    answerText: string,
-    relatedNoticeIds: string[],
-  ) => void
+  addChatInquiry: (category: CategoryId, questionText: string, detail?: string) => Promise<void>
 }
 
 export const AcademicDataContext = createContext<AcademicDataValue | undefined>(

@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useAcademicData } from '../context/useAcademicData'
-import { presetQuestions } from '../mock/presetQuestions'
-import { groupInquiries } from '../services/analytics'
-import { CATEGORIES, type CategoryId } from '../types/academic'
+import type { CategoryId } from '../types/academic'
 import styles from '../App.module.css'
 
 type BotMessage = {
@@ -19,19 +17,17 @@ const uid = () => Math.random().toString(36).slice(2, 10)
 const initialMessage: Message = {
   id: uid(),
   from: 'bot',
-  text: '안녕하세요! 어떤 항목이 궁금하신가요?',
+  text: '안녕하세요. 어떤 항목이 궁금하신가요?',
 }
 
 export function ChatWidget() {
-  const { inquiries, notices, addChatInquiry } = useAcademicData()
+  const { addChatInquiry, categories, faqEntries, keywordPresets, notices } = useAcademicData()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([initialMessage])
   const [category, setCategory] = useState<CategoryId | null>(null)
   const [customMode, setCustomMode] = useState(false)
   const [customText, setCustomText] = useState('')
   const bodyRef = useRef<HTMLDivElement>(null)
-
-  const groups = useMemo(() => groupInquiries(inquiries, 'all'), [inquiries])
 
   useEffect(() => {
     if (!open) return
@@ -50,29 +46,27 @@ export function ChatWidget() {
   }
 
   const selectCategory = (id: CategoryId) => {
-    const found = CATEGORIES.find((item) => item.id === id)
+    const found = categories.find((item) => item.id === id)
     if (!found) return
     setCategory(id)
     setCustomMode(false)
     pushUser(found.label)
-    pushBot(`${found.label} 관련 자주 묻는 질문이에요. 궁금하신 항목을 선택하거나 직접 입력해 주세요.`)
+    pushBot(`${found.label} 관련 자주 묻는 질문을 선택하거나 직접 입력해 주세요.`)
   }
 
-  const ask = (questionText: string) => {
+  const ask = async (questionText: string) => {
     if (!category) return
     pushUser(questionText)
-    const group = groups.find(
-      (item) => item.category === category && item.questionText === questionText,
+    const faq = faqEntries.find(
+      (item) => item.category === category && item.question === questionText,
     )
-    if (group?.answerText) {
-      addChatInquiry(category, questionText, {
-        answerText: group.answerText,
-        relatedNoticeIds: group.relatedNoticeIds,
-      })
-      pushBot(group.answerText, group.relatedNoticeIds)
+
+    await addChatInquiry(category, questionText)
+
+    if (faq) {
+      pushBot(faq.answer, faq.relatedNoticeIds)
     } else {
-      addChatInquiry(category, questionText)
-      pushBot('문의가 접수되었습니다. 담당자 확인 후 답변드릴게요.')
+      pushBot('문의가 접수되었습니다. 담당자가 확인 후 FAQ로 게시하면 이 화면에서도 확인할 수 있습니다.')
     }
     setCustomMode(false)
     setCustomText('')
@@ -88,11 +82,11 @@ export function ChatWidget() {
   const onCustomSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const trimmed = customText.trim()
-    if (trimmed) ask(trimmed)
+    if (trimmed) void ask(trimmed)
   }
 
   const categoryQuestions = category
-    ? presetQuestions.filter((question) => question.category === category)
+    ? keywordPresets.filter((question) => question.category === category)
     : []
 
   return (
@@ -129,7 +123,7 @@ export function ChatWidget() {
           <div className={styles.chatOptions}>
             {!category && (
               <div className={styles.chatQuickGrid}>
-                {CATEGORIES.map((item) => (
+                {categories.map((item) => (
                   <button type="button" key={item.id} onClick={() => selectCategory(item.id)}>
                     {item.label}
                   </button>
@@ -139,7 +133,7 @@ export function ChatWidget() {
             {category && !customMode && (
               <div className={styles.chatQuickGrid}>
                 {categoryQuestions.map((question) => (
-                  <button type="button" key={question.id} onClick={() => ask(question.text)}>
+                  <button type="button" key={question.id} onClick={() => void ask(question.text)}>
                     {question.text}
                   </button>
                 ))}
@@ -156,7 +150,7 @@ export function ChatWidget() {
                 <input
                   value={customText}
                   onChange={(event) => setCustomText(event.target.value)}
-                  placeholder="궁금하신 내용을 입력해 주세요"
+                  placeholder="궁금한 내용을 입력해 주세요"
                   aria-label="문의 내용"
                 />
                 <button type="submit">보내기</button>

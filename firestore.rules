@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /categories/{document=**} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+
+    match /keywordPresets/{document=**} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+
+    match /faqEntries/{document=**} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+
+    match /checklists/{document=**} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+
+    match /notices/{document=**} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+
+    match /inquiries/{inquiryId} {
+      allow create: if
+        request.resource.data.source in ['chat', 'phone'] &&
+        request.resource.data.categoryId in ['transfer', 'course', 'leave', 'etc'] &&
+        request.resource.data.keyword is string &&
+        request.resource.data.status == 'pending';
+      allow read, update, delete: if signedIn();
+    }
+  }
+}

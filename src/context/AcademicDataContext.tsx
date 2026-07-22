@@ -1,22 +1,54 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
-  createInquiry,
-  createPhoneInquiry,
+  createChatInquiry,
+  getCategories,
+  getChecklists,
+  getFaqEntries,
   getInitialInquiries,
   getInitialNotices,
+  getKeywordPresets,
   isFirestoreConfigured,
 } from '../services/inquiryService'
 import { AcademicDataContext, type AcademicDataValue } from './academicDataContextObject'
-import type { Inquiry, Notice } from '../types/academic'
+import type {
+  Category,
+  Checklist,
+  FaqEntry,
+  Inquiry,
+  Notice,
+  PresetQuestion,
+} from '../types/academic'
 
 export const AcademicDataProvider = ({ children }: { children: ReactNode }) => {
+  const [categories, setCategories] = useState<Category[]>([])
+  const [keywordPresets, setKeywordPresets] = useState<PresetQuestion[]>([])
+  const [faqEntries, setFaqEntries] = useState<FaqEntry[]>([])
+  const [checklists, setChecklists] = useState<Checklist[]>([])
   const [inquiries, setInquiries] = useState<Inquiry[]>([])
   const [notices, setNotices] = useState<Notice[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([getInitialInquiries(), getInitialNotices()])
-      .then(([initialInquiries, initialNotices]) => {
+    Promise.all([
+      getCategories(),
+      getKeywordPresets(),
+      getFaqEntries(),
+      getChecklists(),
+      getInitialInquiries(),
+      getInitialNotices(),
+    ])
+      .then(([
+        initialCategories,
+        initialPresets,
+        initialFaqEntries,
+        initialChecklists,
+        initialInquiries,
+        initialNotices,
+      ]) => {
+        setCategories(initialCategories)
+        setKeywordPresets(initialPresets)
+        setFaqEntries(initialFaqEntries)
+        setChecklists(initialChecklists)
         setInquiries(initialInquiries)
         setNotices(initialNotices)
       })
@@ -25,46 +57,20 @@ export const AcademicDataProvider = ({ children }: { children: ReactNode }) => {
 
   const value = useMemo<AcademicDataValue>(
     () => ({
+      categories,
+      keywordPresets,
+      faqEntries,
+      checklists,
       inquiries,
       notices,
       loading,
       usingMockData: !isFirestoreConfigured(),
-      addPhoneInquiry: (category, questionText) => {
-        setInquiries((current) => [
-          createPhoneInquiry(category, questionText),
-          ...current,
-        ])
-      },
-      addChatInquiry: (category, questionText, answer) => {
-        setInquiries((current) => [
-          createInquiry('chat', category, questionText, answer),
-          ...current,
-        ])
-      },
-      answerInquiryGroup: (
-        questionText,
-        category,
-        answerText,
-        relatedNoticeIds,
-      ) => {
-        const answeredAt = Date.now()
-        setInquiries((current) =>
-          current.map((inquiry) =>
-            inquiry.category === category &&
-            inquiry.questionText === questionText
-              ? {
-                  ...inquiry,
-                  status: 'answered',
-                  answerText,
-                  relatedNoticeIds,
-                  answeredAt,
-                }
-              : inquiry,
-          ),
-        )
+      addChatInquiry: async (category, questionText, detail) => {
+        const inquiry = await createChatInquiry(category, questionText, detail)
+        setInquiries((current) => [inquiry, ...current])
       },
     }),
-    [inquiries, loading, notices],
+    [categories, checklists, faqEntries, inquiries, keywordPresets, loading, notices],
   )
 
   return (
