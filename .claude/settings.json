@@ -7,7 +7,9 @@
       "Bash(npx playwright *)",
       "Bash(node debug2.mjs)",
       "Bash([ -d \"$ADMIN\" ])",
-      "Bash(find /c/Users/USER/Desktop/han-non-e-admin -type f -not -path */node_modules/* -not -path */.git/* -not -path */target/* -not -path */dist/*)"
+      "Bash(find /c/Users/USER/Desktop/han-non-e-admin -type f -not -path */node_modules/* -not -path */.git/* -not -path */target/* -not -path */dist/*)",
+      "Skill(claude-api)",
+      "Skill(claude-api:*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\USER\\Desktop\\han-non-e-admin\\src",

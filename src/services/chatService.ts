@@ -14,6 +14,24 @@ import {
 import type { CategoryId, ChatMessage } from '../types/academic'
 import { firebaseAuth, firestore } from './firebase'
 
+export type AiAnswer = {
+  answer: string
+  confident: boolean
+  relatedNoticeIds: string[]
+}
+
+export type AiChatPayload = {
+  categoryLabel: string
+  kb: {
+    faqs: { id: string; question: string; answer: string }[]
+    notices: { id: string; title: string; body?: string }[]
+    checklist: { label: string; content: string }[]
+    phone?: string
+    hours?: string
+  }
+  history: { role: 'user' | 'assistant'; content: string }[]
+}
+
 const toMillis = (value: unknown): number => {
   if (value instanceof Timestamp) return value.toMillis()
   if (typeof value === 'number') return value
@@ -48,14 +66,15 @@ export const createConversation = async (category: CategoryId): Promise<string |
     createdAt: serverTimestamp(),
     unreadForAdmin: false,
     unreadForStudent: false,
+    needsHuman: false,
   })
   return ref.id
 }
 
-// 학생/봇 메시지 전송 + 대화 메타 갱신.
+// 학생/봇/AI 메시지 전송 + 대화 메타 갱신.
 export const sendStudentMessage = async (
   conversationId: string,
-  from: 'student' | 'bot',
+  from: 'student' | 'bot' | 'ai',
   text: string,
 ): Promise<void> => {
   if (!firestore) return
@@ -86,9 +105,11 @@ export const subscribeMessages = (
   return onSnapshot(query(messagesRef, orderBy('createdAt', 'asc')), (snapshot) => {
     const messages = snapshot.docs.map((docSnapshot): ChatMessage => {
       const data = docSnapshot.data()
+      const from =
+        data.from === 'admin' ? 'admin' : data.from === 'bot' ? 'bot' : data.from === 'ai' ? 'ai' : 'student'
       return {
         id: docSnapshot.id,
-        from: data.from === 'admin' ? 'admin' : data.from === 'bot' ? 'bot' : 'student',
+        from,
         text: String(data.text ?? ''),
         imageUrls: Array.isArray(data.imageUrls) ? data.imageUrls.map(String) : undefined,
         createdAt: toMillis(data.createdAt),
@@ -109,5 +130,37 @@ export const markConversationReadByStudent = async (conversationId: string): Pro
     )
   } catch (error) {
     console.warn('대화 읽음 처리에 실패했습니다.', error)
+  }
+}
+
+// AI가 답하기 어려운 문의를 관리자에게 넘긴다.
+export const escalateToHuman = async (conversationId: string): Promise<void> => {
+  if (!firestore) return
+  try {
+    await setDoc(
+      doc(firestore, 'conversations', conversationId),
+      { needsHuman: true, unreadForAdmin: true },
+      { merge: true },
+    )
+  } catch (error) {
+    console.warn('상담원 연결 처리에 실패했습니다.', error)
+  }
+}
+
+// 서버 프록시(/api/chat)를 통해 OpenAI 답변을 받는다.
+export const askAi = async (payload: AiChatPayload): Promise<AiAnswer> => {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!response.ok) {
+    throw new Error(`AI 응답 실패: ${response.status}`)
+  }
+  const data = (await response.json()) as Partial<AiAnswer>
+  return {
+    answer: String(data.answer ?? ''),
+    confident: Boolean(data.confident),
+    relatedNoticeIds: Array.isArray(data.relatedNoticeIds) ? data.relatedNoticeIds : [],
   }
 }

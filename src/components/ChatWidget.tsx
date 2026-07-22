@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useAcademicData } from '../context/useAcademicData'
 import {
+  askAi,
   createConversation,
+  escalateToHuman,
   markConversationReadByStudent,
   sendStudentMessage,
   subscribeMessages,
+  type AiChatPayload,
 } from '../services/chatService'
 import { createChatInquiry } from '../services/inquiryService'
-import type { CategoryId, ChatMessage } from '../types/academic'
+import { getCategory, type CategoryId, type ChatMessage } from '../types/academic'
 import styles from '../App.module.css'
 
 const STORAGE_KEY = 'hannon-chat-session'
@@ -36,13 +39,14 @@ const saveSession = (session: StoredSession | null) => {
 const uid = () => Math.random().toString(36).slice(2, 10)
 
 export function ChatWidget() {
-  const { categories, faqEntries, keywordPresets } = useAcademicData()
+  const { categories, checklists, faqEntries, keywordPresets, notices } = useAcademicData()
   const [open, setOpen] = useState(false)
   const [category, setCategory] = useState<CategoryId | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [customText, setCustomText] = useState('')
   const [starting, setStarting] = useState(false)
+  const [aiThinking, setAiThinking] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
 
   const localMode = conversationId === LOCAL
@@ -86,25 +90,86 @@ export function ChatWidget() {
     setMessages((current) => [...current, { id: uid(), from, text, createdAt: Date.now() }])
   }
 
+  // 현재 카테고리 지식 기반을 프록시로 보낼 형태로 만든다.
+  const buildKb = (cat: CategoryId): AiChatPayload['kb'] => {
+    const info = categories.find((item) => item.id === cat) ?? getCategory(cat, categories)
+    const checklist = checklists.find((item) => item.category === cat)
+    return {
+      faqs: faqEntries
+        .filter((item) => item.category === cat)
+        .map((item) => ({ id: item.id, question: item.question, answer: item.answer })),
+      notices: notices
+        .filter((item) => item.category === cat)
+        .map((item) => ({ id: item.id, title: item.title })),
+      checklist: checklist ? checklist.items.map((item) => ({ label: item.label, content: item.content })) : [],
+      phone: info?.phone,
+      hours: info?.hours,
+    }
+  }
+
+  const buildHistory = (priorMessages: ChatMessage[], latest: string): AiChatPayload['history'] => [
+    ...priorMessages.map((message) => ({
+      role: message.from === 'student' ? ('user' as const) : ('assistant' as const),
+      content: message.text,
+    })),
+    { role: 'user' as const, content: latest },
+  ]
+
   const send = async (text: string) => {
     const trimmed = text.trim()
-    if (!trimmed || !category || !conversationId) return
+    if (!trimmed || !category || !conversationId || aiThinking) return
     setCustomText('')
 
-    const faq = faqEntries.find((item) => item.category === category && item.question === trimmed)
+    const categoryLabel = (categories.find((item) => item.id === category) ?? getCategory(category, categories)).label
+    const payload: AiChatPayload = {
+      categoryLabel,
+      kb: buildKb(category),
+      history: buildHistory(messages, trimmed),
+    }
 
     if (localMode) {
       pushLocal('student', trimmed)
-      if (faq) pushLocal('bot', faq.answer)
-      else pushLocal('bot', '문의가 접수되었습니다. 담당자가 확인 후 답변드립니다.')
+      setAiThinking(true)
+      try {
+        const result = await askAi(payload)
+        pushLocal('ai', result.answer)
+      } catch {
+        pushLocal('ai', '지금은 답변을 불러오지 못했어요. 잠시 후 다시 시도하거나 상담원 연결을 이용해 주세요.')
+      } finally {
+        setAiThinking(false)
+      }
       return
     }
 
     await sendStudentMessage(conversationId, 'student', trimmed)
     // 문의 로그(빈도 대시보드용)
     void createChatInquiry(category, trimmed, undefined, conversationId)
-    // 매칭되는 FAQ가 있으면 봇 자동응답을 함께 남긴다.
-    if (faq) await sendStudentMessage(conversationId, 'bot', faq.answer)
+
+    setAiThinking(true)
+    try {
+      const result = await askAi(payload)
+      await sendStudentMessage(conversationId, 'ai', result.answer)
+      if (!result.confident) await escalateToHuman(conversationId)
+    } catch {
+      await sendStudentMessage(
+        conversationId,
+        'ai',
+        '지금은 답변을 불러오지 못했어요. 담당자에게 연결해 드릴게요.',
+      )
+      await escalateToHuman(conversationId)
+    } finally {
+      setAiThinking(false)
+    }
+  }
+
+  const requestHuman = async () => {
+    if (!conversationId) return
+    if (localMode) {
+      pushLocal('bot', '데모 모드에서는 상담원 연결이 지원되지 않습니다.')
+      return
+    }
+    await sendStudentMessage(conversationId, 'bot', '담당자에게 연결했어요. 확인 후 답변드립니다.')
+    await escalateToHuman(conversationId)
   }
 
   const reset = () => {
@@ -158,6 +223,11 @@ export function ChatWidget() {
                 <p>{message.text}</p>
               </div>
             ))}
+            {aiThinking && (
+              <div className={styles.chatBubbleBot}>
+                <p>답변을 작성하고 있어요…</p>
+              </div>
+            )}
           </div>
           <div className={styles.chatOptions}>
             {!started && (
@@ -178,10 +248,18 @@ export function ChatWidget() {
               <>
                 <div className={styles.chatQuickGrid}>
                   {categoryQuestions.map((question) => (
-                    <button type="button" key={question.id} onClick={() => void send(question.text)}>
+                    <button
+                      type="button"
+                      key={question.id}
+                      disabled={aiThinking}
+                      onClick={() => void send(question.text)}
+                    >
                       {question.text}
                     </button>
                   ))}
+                  <button type="button" onClick={() => void requestHuman()}>
+                    상담원 연결
+                  </button>
                   <button type="button" onClick={reset}>
                     다른 항목 선택
                   </button>
@@ -193,7 +271,9 @@ export function ChatWidget() {
                     placeholder="궁금한 내용을 입력해 주세요"
                     aria-label="문의 내용"
                   />
-                  <button type="submit">보내기</button>
+                  <button type="submit" disabled={aiThinking}>
+                    보내기
+                  </button>
                 </form>
               </>
             )}

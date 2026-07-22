@@ -51,7 +51,7 @@ export type FaqEntry = {
 
 export type ChatMessage = {
   id: string
-  from: 'student' | 'admin' | 'bot'
+  from: 'student' | 'admin' | 'bot' | 'ai'
   text: string
   imageUrls?: string[]
   createdAt: number
@@ -67,6 +67,7 @@ export type Conversation = {
   createdAt: number
   unreadForAdmin: boolean
   unreadForStudent: boolean
+  needsHuman: boolean
 }
 
 export type ChecklistItem = {

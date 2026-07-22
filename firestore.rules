@@ -69,10 +69,10 @@ service cloud.firestore {
         }
 
         allow read: if isAdmin() || ownsParent();
-        // 학생은 student/bot 메시지만, 관리자는 admin 메시지만 생성.
+        // 학생은 student/bot/ai 메시지만, 관리자는 admin 메시지만 생성.
         allow create: if
           (isAdmin() && request.resource.data.from == 'admin') ||
-          (ownsParent() && request.resource.data.from in ['student', 'bot']);
+          (ownsParent() && request.resource.data.from in ['student', 'bot', 'ai']);
         allow update, delete: if isAdmin();
       }
     }
