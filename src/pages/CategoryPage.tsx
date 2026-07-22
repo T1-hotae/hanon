@@ -4,7 +4,7 @@ import { FaqItem } from '../components/FaqItem'
 import { Layout } from '../components/Layout'
 import { NoticeList } from '../components/NoticeList'
 import { PhoneIcon } from '../components/PhoneIcon'
-import { primaryTabs } from '../constants'
+import { primaryCategories } from '../constants'
 import { useAcademicData } from '../context/useAcademicData'
 import { getCategory, type CategoryId } from '../types/academic'
 import { sortFaqs, sortNoticesByViews } from '../utils/format'
@@ -16,6 +16,7 @@ export function CategoryPage() {
   const { categories, checklists, faqEntries, notices } = useAcademicData()
   const categoryId = params.id as CategoryId
   const category = getCategory(categoryId, categories)
+  const tabs = primaryCategories(categories)
   const [modalOpen, setModalOpen] = useState(false)
   const [openFaqId, setOpenFaqId] = useState(searchParams.get('open') ?? '')
 
@@ -28,7 +29,7 @@ export function CategoryPage() {
   return (
     <Layout>
       <nav className={styles.topTabs} aria-label="주요 학사 항목">
-        {primaryTabs.map((tab) => (
+        {tabs.map((tab) => (
           <Link
             key={tab.id}
             to={`/category/${tab.id}`}

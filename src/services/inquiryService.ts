@@ -36,8 +36,10 @@ const toMillis = (value: unknown): number => {
   return Date.now()
 }
 
-const isCategoryId = (value: unknown): value is CategoryId =>
-  value === 'transfer' || value === 'course' || value === 'leave' || value === 'etc'
+// 카테고리는 Firestore(관리자 앱)에서 자유롭게 추가된다. 알려진 ID로 제한하지 않고
+// 저장된 categoryId를 그대로 사용한다. (없을 때만 'etc'로 폴백)
+const readCategoryId = (data: DocumentData): CategoryId =>
+  String(data.categoryId ?? data.category ?? 'etc')
 
 const readCollection = async <T>(
   name: string,
@@ -63,7 +65,7 @@ export const isFirestoreConfigured = isFirebaseConfigured
 export const getCategories = () =>
   readCollection<Category>('categories', CATEGORIES, (snapshot) => {
     const data = snapshot.data()
-    const id = isCategoryId(data.id) ? data.id : (snapshot.id as CategoryId)
+    const id = String(data.id ?? snapshot.id)
     return {
       id,
       label: String(data.label ?? ''),
@@ -79,7 +81,7 @@ export const getKeywordPresets = () =>
     const data = snapshot.data()
     return {
       id: String(data.id ?? snapshot.id),
-      category: isCategoryId(data.categoryId) ? data.categoryId : isCategoryId(data.category) ? data.category : 'etc',
+      category: readCategoryId(data),
       text: String(data.label ?? data.text ?? ''),
       order: Number(data.order ?? 0),
     }
@@ -90,7 +92,7 @@ export const getFaqEntries = () =>
     const data = snapshot.data()
     return {
       id: String(data.id ?? snapshot.id),
-      category: isCategoryId(data.categoryId) ? data.categoryId : isCategoryId(data.category) ? data.category : 'etc',
+      category: readCategoryId(data),
       question: String(data.question ?? ''),
       answer: String(data.answer ?? ''),
       answerImageUrls: Array.isArray(data.answerImageUrls) ? data.answerImageUrls.map(String) : [],
@@ -108,7 +110,7 @@ export const getChecklists = () =>
     const rawItems = Array.isArray(data.items) ? data.items : []
     return {
       id: String(data.id ?? snapshot.id),
-      category: isCategoryId(data.categoryId) ? data.categoryId : isCategoryId(data.category) ? data.category : 'etc',
+      category: readCategoryId(data),
       order: Number(data.order ?? 0),
       items: rawItems
         .map((item, index) => ({
@@ -126,7 +128,7 @@ export const getInitialNotices = async (): Promise<Notice[]> =>
     const data = snapshot.data()
     return {
       id: String(data.id ?? snapshot.id),
-      category: isCategoryId(data.categoryId) ? data.categoryId : isCategoryId(data.category) ? data.category : 'etc',
+      category: readCategoryId(data),
       title: String(data.title ?? ''),
       url: String(data.url ?? '#'),
       postedAt: toMillis(data.postedAt ?? data.createdAt),
@@ -141,7 +143,7 @@ export const getInitialInquiries = async (): Promise<Inquiry[]> =>
     return {
       id: String(data.id ?? snapshot.id),
       source: data.source === 'phone' ? 'phone' : 'chat',
-      category: isCategoryId(data.categoryId) ? data.categoryId : isCategoryId(data.category) ? data.category : 'etc',
+      category: readCategoryId(data),
       questionText: String(data.keyword ?? data.questionText ?? data.detail ?? ''),
       status: data.status === 'answered' ? 'answered' : 'pending',
       answerText: typeof data.answerText === 'string' ? data.answerText : undefined,

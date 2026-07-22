@@ -1,4 +1,6 @@
-export type CategoryId = 'transfer' | 'course' | 'leave' | 'etc'
+// 카테고리는 관리자 앱에서 Firestore에 자유롭게 추가된다. 특정 문자열로 고정하지 않는다.
+// (예약어 'etc'는 미분류/기타 catch-all 용도로만 관례적으로 사용)
+export type CategoryId = string
 
 export type Inquiry = {
   id: string
@@ -127,4 +129,5 @@ export const CATEGORIES: Category[] = [
 export const getCategory = (id: CategoryId, categories: Category[] = CATEGORIES) =>
   categories.find((category) => category.id === id) ??
   categories.find((category) => category.id === 'etc') ??
+  categories[0] ??
   CATEGORIES[3]

@@ -46,7 +46,7 @@ service cloud.firestore {
     match /inquiries/{inquiryId} {
       allow create: if
         request.resource.data.source in ['chat', 'phone'] &&
-        request.resource.data.categoryId in ['transfer', 'course', 'leave', 'etc'] &&
+        request.resource.data.categoryId is string &&
         request.resource.data.keyword is string &&
         request.resource.data.status == 'pending';
       allow read, update, delete: if isAdmin();
