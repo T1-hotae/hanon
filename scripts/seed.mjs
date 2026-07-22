@@ -71,10 +71,10 @@ const checklists = categories.map((category) => ({
 }))
 
 const notices = [
-  { id: 'n-transfer-1', categoryId: 'transfer', title: '2026학년도 2학기 전과 신청 안내', url: 'https://example.edu/notices/transfer-2026-fall', postedAt: new Date('2026-07-15T09:00:00+09:00'), order: 1 },
-  { id: 'n-course-1', categoryId: 'course', title: '2026학년도 2학기 예비수강신청 일정 안내', url: 'https://example.edu/notices/course-pre', postedAt: new Date('2026-07-18T09:00:00+09:00'), order: 1 },
-  { id: 'n-leave-1', categoryId: 'leave', title: '2026학년도 2학기 일반휴학 및 복학 신청 안내', url: 'https://example.edu/notices/leave-return', postedAt: new Date('2026-07-16T09:00:00+09:00'), order: 1 },
-  { id: 'n-etc-1', categoryId: 'etc', title: '2026학년도 2학기 국가장학금 2차 신청 안내', url: 'https://example.edu/notices/scholarship', postedAt: new Date('2026-07-17T09:00:00+09:00'), order: 1 },
+  { id: 'n-transfer-1', categoryId: 'transfer', title: '2026학년도 2학기 전과 신청 안내', url: 'https://example.edu/notices/transfer-2026-fall', postedAt: new Date('2026-07-15T09:00:00+09:00'), order: 1, viewCount: 0 },
+  { id: 'n-course-1', categoryId: 'course', title: '2026학년도 2학기 예비수강신청 일정 안내', url: 'https://example.edu/notices/course-pre', postedAt: new Date('2026-07-18T09:00:00+09:00'), order: 1, viewCount: 0 },
+  { id: 'n-leave-1', categoryId: 'leave', title: '2026학년도 2학기 일반휴학 및 복학 신청 안내', url: 'https://example.edu/notices/leave-return', postedAt: new Date('2026-07-16T09:00:00+09:00'), order: 1, viewCount: 0 },
+  { id: 'n-etc-1', categoryId: 'etc', title: '2026학년도 2학기 국가장학금 2차 신청 안내', url: 'https://example.edu/notices/scholarship', postedAt: new Date('2026-07-17T09:00:00+09:00'), order: 1, viewCount: 0 },
 ]
 
 const faqEntries = [

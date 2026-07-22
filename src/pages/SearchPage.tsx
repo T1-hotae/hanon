@@ -2,7 +2,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { CategoryChips } from '../components/CategoryChips'
 import { Layout } from '../components/Layout'
 import { useAcademicData } from '../context/useAcademicData'
-import { formatViews, getViewCount, sortFaqs } from '../utils/format'
+import { incrementNoticeView } from '../services/inquiryService'
+import { formatViews, markNoticeViewedOnce, sortFaqs } from '../utils/format'
 import styles from '../App.module.css'
 
 export function SearchPage() {
@@ -20,6 +21,10 @@ export function SearchPage() {
     .sort((a, b) => b.postedAt - a.postedAt)
   const hasResults = Boolean(query && (faqMatches.length || noticeMatches.length))
 
+  const handleNoticeClick = (noticeId: string) => {
+    if (markNoticeViewedOnce(noticeId)) void incrementNoticeView(noticeId)
+  }
+
   return (
     <Layout>
       <section className={styles.section}>
@@ -35,10 +40,16 @@ export function SearchPage() {
               </Link>
             ))}
             {noticeMatches.map((notice) => (
-              <a key={notice.id} href={notice.url} target="_blank" rel="noreferrer">
+              <a
+                key={notice.id}
+                href={notice.url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => handleNoticeClick(notice.id)}
+              >
                 <span>공지</span>
                 <strong>{notice.title}</strong>
-                <em>{formatViews(getViewCount(notice.id))}</em>
+                <em>{formatViews(notice.viewCount)}</em>
               </a>
             ))}
           </div>

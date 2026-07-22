@@ -7,7 +7,7 @@ import { PhoneIcon } from '../components/PhoneIcon'
 import { primaryTabs } from '../constants'
 import { useAcademicData } from '../context/useAcademicData'
 import { getCategory, type CategoryId } from '../types/academic'
-import { sortFaqs } from '../utils/format'
+import { sortFaqs, sortNoticesByViews } from '../utils/format'
 import styles from '../App.module.css'
 
 export function CategoryPage() {
@@ -23,9 +23,7 @@ export function CategoryPage() {
 
   const faqs = sortFaqs(faqEntries.filter((faq) => faq.category === categoryId))
   const checklist = checklists.find((item) => item.category === categoryId)
-  const categoryNotices = notices
-    .filter((notice) => notice.category === categoryId)
-    .sort((a, b) => b.postedAt - a.postedAt)
+  const categoryNotices = sortNoticesByViews(notices.filter((notice) => notice.category === categoryId))
 
   return (
     <Layout>
@@ -89,20 +87,20 @@ export function CategoryPage() {
         </aside>
       </section>
 
-      <section className={styles.phoneCta}>
-        <button
-          type="button"
-          className={styles.phoneCtaButton}
-          onClick={() => setModalOpen(true)}
-          aria-label={`${category.label} 문의 전화 연결`}
-        >
+      <button
+        type="button"
+        className={styles.phoneCta}
+        onClick={() => setModalOpen(true)}
+        aria-label={`${category.label} 문의 전화 연결`}
+      >
+        <span className={styles.phoneCtaButton}>
           <PhoneIcon />
-        </button>
-        <div>
+        </span>
+        <span className={styles.phoneCtaText}>
           <strong>{category.label} 전화 문의</strong>
           <span>전화로 바로 연결하기</span>
-        </div>
-      </section>
+        </span>
+      </button>
 
       {modalOpen && (
         <div className={styles.modalBackdrop} role="presentation" onClick={() => setModalOpen(false)}>

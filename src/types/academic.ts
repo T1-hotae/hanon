@@ -18,6 +18,8 @@ export type Notice = {
   title: string
   url: string
   postedAt: number
+  order: number
+  viewCount: number
 }
 
 export type PresetQuestion = {

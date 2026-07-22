@@ -64,7 +64,10 @@
   display: grid;
   gap: 8px;
   grid-template-columns: 1fr auto;
+  justify-self: end;
   margin-top: 0;
+  max-width: 420px;
+  width: 100%;
 }
 
 .searchForm input,
@@ -233,10 +236,10 @@
 }
 
 .categoryTopGrid {
-  align-items: stretch;
+  align-items: start;
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.85fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.9fr);
   margin-bottom: 22px;
 }
 
@@ -248,6 +251,7 @@
 .categoryTopLeft {
   display: flex;
   flex-direction: column;
+  gap: 14px;
 }
 
 .sectionTitle,
@@ -377,7 +381,7 @@
   border: 0;
   box-shadow: none;
   display: block;
-  flex: 1;
+  flex: 0 0 auto;
   padding: 0;
 }
 
@@ -391,8 +395,6 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-sm);
-  height: 100%;
-  min-height: 112px;
   padding: 20px 22px;
 }
 
@@ -407,12 +409,21 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
+  cursor: pointer;
   display: flex;
-  flex-direction: column;
-  gap: 14px;
+  font: inherit;
+  gap: 16px;
   margin: 8px 0 20px;
-  padding: 32px 22px;
-  text-align: center;
+  padding: 20px 24px;
+  text-align: left;
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+  width: 100%;
+}
+
+.phoneCta:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .phoneCtaButton {
@@ -422,67 +433,54 @@
   border-radius: 999px;
   box-shadow: var(--shadow-md);
   color: #ffffff;
-  cursor: pointer;
   display: flex;
-  height: 64px;
+  flex: none;
+  height: 56px;
   justify-content: center;
-  transition: background-color var(--transition), transform var(--transition);
-  width: 64px;
+  width: 56px;
 }
 
-.phoneCtaButton:hover {
-  background: var(--color-primary-hover);
-  transform: translateY(-2px);
+.phoneCtaText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .phoneCta strong {
   color: var(--color-text);
-  display: block;
   font-size: 17px;
 }
 
-.phoneCta span {
+.phoneCta .phoneCtaText span {
   color: var(--color-text-muted);
   font-size: 14px;
 }
 
 .twoColumn {
+  align-items: start;
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.95fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.9fr);
 }
 
 .twoColumn > .section {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  padding: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
 }
 
 .twoColumn > .section > h2 {
   border-bottom: 1px solid var(--color-border);
-  display: inline-block;
   font-size: 16px;
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   padding: 0 0 8px;
 }
 
-.twoColumn > .section:first-child .accordion {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-sm);
-  min-height: 0;
-  padding: 10px;
-}
-
-.twoColumn > .section:last-child .noticeList {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-sm);
-  min-height: 0;
-  padding: 4px 14px;
+.twoColumn > .section:last-child .noticeList li:first-child {
+  border-top: 0;
+  padding-top: 4px;
 }
 
 .faqItem {
@@ -864,44 +862,87 @@ mark {
   clear: both;
   display: grid;
   grid-template-rows: auto 1fr auto;
-  height: 480px;
-  margin-bottom: 12px;
-  width: 340px;
+  height: min(680px, calc(100vh - 120px));
+  margin-bottom: 16px;
+  overflow: hidden;
+  width: 420px;
 }
 
 .chatHeader {
   align-items: center;
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  display: flex;
-  justify-content: space-between;
-  padding: 14px 18px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 36px 1fr 36px;
+  padding: 16px 18px;
 }
 
 .chatHeader strong {
   color: var(--color-text);
+  font-size: 16px;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.chatHeader button {
+.chatHeaderBack,
+.chatHeaderClose {
+  align-items: center;
   background: transparent;
   border: 0;
+  border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 20px;
+  display: flex;
+  height: 36px;
+  justify-content: center;
   line-height: 1;
+  transition: background-color var(--transition), color var(--transition);
+  width: 36px;
+}
+
+.chatHeaderBack {
+  font-size: 28px;
+}
+
+.chatHeaderClose {
+  font-size: 24px;
+}
+
+.chatHeaderBack:hover,
+.chatHeaderClose:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.chatHeaderSpacer {
+  display: block;
+  height: 36px;
+  width: 36px;
 }
 
 .chatBody {
+  align-content: start;
+  align-items: start;
   display: grid;
-  gap: 10px;
+  gap: 14px;
   overflow-y: auto;
-  padding: 14px 18px;
+  padding: 22px 20px;
+}
+
+.chatIntro {
+  display: grid;
+  gap: 18px;
 }
 
 .chatBubbleBot,
 .chatBubbleUser {
-  border-radius: var(--radius-md);
-  max-width: 85%;
-  padding: 10px 14px;
+  border-radius: 16px;
+  line-height: 1.5;
+  max-width: 88%;
+  padding: 9px 14px;
 }
 
 .chatBubbleBot p,
@@ -911,6 +952,7 @@ mark {
 
 .chatBubbleBot {
   background: var(--color-bg);
+  border-bottom-left-radius: 4px;
   color: var(--color-text);
   justify-self: start;
 }
@@ -927,90 +969,9 @@ mark {
 
 .chatBubbleUser {
   background: var(--color-primary);
+  border-bottom-right-radius: 4px;
   color: #ffffff;
   justify-self: end;
-}
-
-.chatOptions {
-  border-top: 1px solid var(--color-border);
-  padding: 12px 18px;
-}
-
-.chatQuickGrid {
-  display: grid;
-  gap: 8px;
-  max-height: 180px;
-  overflow-y: auto;
-}
-
-.chatQuickGrid button {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-text);
-  cursor: pointer;
-  font: inherit;
-  padding: 9px 12px;
-  text-align: left;
-  transition: border-color var(--transition), color var(--transition);
-}
-
-.chatQuickGrid button:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.chatModeGrid {
-  display: grid;
-  gap: 10px;
-}
-
-.chatModeCard {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  display: grid;
-  gap: 4px;
-  font: inherit;
-  padding: 14px 16px;
-  text-align: left;
-  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
-}
-
-.chatModeCard:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
-}
-
-.chatModeCard:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-
-.chatModeCard strong {
-  color: var(--color-text);
-  font-size: 15px;
-}
-
-.chatModeCard span {
-  color: var(--color-text-muted);
-  font-size: 13px;
-}
-
-.chatTextButton {
-  background: transparent;
-  border: 0;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font: inherit;
-  justify-self: start;
-  padding: 4px 2px;
-}
-
-.chatTextButton:hover {
-  color: var(--color-primary);
 }
 
 .chatBubbleTag {
@@ -1019,8 +980,174 @@ mark {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
   text-transform: uppercase;
+}
+
+.chatTyping {
+  align-items: center;
+  display: flex;
+  gap: 5px;
+  height: 12px;
+}
+
+.chatTyping span {
+  animation: chatBlink 1.2s infinite ease-in-out both;
+  background: var(--color-text-muted);
+  border-radius: 999px;
+  height: 7px;
+  width: 7px;
+}
+
+.chatTyping span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.chatTyping span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes chatBlink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.chatModeGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.chatModeCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  font: inherit;
+  padding: 20px;
+  text-align: left;
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.chatModeCard:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.chatModeCard:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.chatModeIcon {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.chatModeCard strong {
+  color: var(--color-text);
+  font-size: 17px;
+}
+
+.chatModeCard span:not(.chatModeIcon) {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.chatCategoryGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.chatCategoryCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  font: inherit;
+  min-height: 76px;
+  padding: 14px 16px;
+  text-align: left;
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.chatCategoryCard:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+}
+
+.chatCategoryCard:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.chatCategoryCard strong {
+  color: var(--color-text);
+  font-size: 15px;
+}
+
+.chatCategoryCard span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.chatOptions {
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.chatQuickGrid {
+  display: grid;
+  gap: 8px;
+  max-height: 168px;
+  overflow-y: auto;
+}
+
+.chatQuickGrid button {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13.5px;
+  padding: 10px 14px;
+  text-align: left;
+  transition: border-color var(--transition), color var(--transition), background-color var(--transition);
+}
+
+.chatQuickGrid button:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.chatQuickAccent {
+  background: var(--color-accent-soft) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent) !important;
+  font-weight: 700;
+  text-align: center !important;
 }
 
 .chatCustomForm {
@@ -1032,30 +1159,51 @@ mark {
 .chatCustomForm input {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
   font: inherit;
-  padding: 10px 12px;
+  padding: 12px 16px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.chatCustomForm input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(27, 76, 128, 0.12);
+  outline: none;
 }
 
 .chatCustomForm button {
   background: var(--color-primary);
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
   color: #ffffff;
   cursor: pointer;
   font: inherit;
   font-weight: 700;
-  padding: 0 16px;
+  padding: 0 20px;
+  transition: background-color var(--transition);
 }
 
-@media (max-width: 420px) {
+.chatCustomForm button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.chatCustomForm button:disabled {
+  opacity: 0.6;
+}
+
+@media (max-width: 480px) {
   .chatWidget {
-    left: 16px;
-    right: 16px;
+    left: 12px;
+    right: 12px;
   }
 
   .chatPanel {
+    height: min(680px, calc(100vh - 96px));
     width: 100%;
+  }
+
+  .chatCategoryGrid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1072,6 +1220,8 @@ mark {
   .searchForm {
     grid-column: 1 / -1;
     grid-row: 2;
+    justify-self: stretch;
+    max-width: none;
   }
 
   .topTabs {

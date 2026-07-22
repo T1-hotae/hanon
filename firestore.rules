@@ -35,9 +35,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /notices/{document=**} {
+    match /notices/{noticeId} {
       allow read: if true;
       allow write: if isAdmin();
+      // 학생(로그인 사용자)은 조회수(viewCount)만 갱신할 수 있다.
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']);
     }
 
     match /inquiries/{inquiryId} {

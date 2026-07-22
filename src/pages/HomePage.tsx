@@ -3,13 +3,13 @@ import { CategoryChips } from '../components/CategoryChips'
 import { Layout } from '../components/Layout'
 import { NoticeList } from '../components/NoticeList'
 import { useAcademicData } from '../context/useAcademicData'
-import { formatViews, sortFaqs } from '../utils/format'
+import { formatViews, sortFaqs, sortNoticesByViews } from '../utils/format'
 import styles from '../App.module.css'
 
 export function HomePage() {
   const { faqEntries, notices } = useAcademicData()
   const topFaqs = sortFaqs(faqEntries).slice(0, 5)
-  const latestNotices = [...notices].sort((a, b) => b.postedAt - a.postedAt).slice(0, 10)
+  const popularNotices = sortNoticesByViews(notices).slice(0, 10)
 
   return (
     <Layout>
@@ -43,7 +43,7 @@ export function HomePage() {
           <h2>자주 찾는 원문 공지</h2>
           <Link to="/notices">더보기</Link>
         </div>
-        <NoticeList notices={latestNotices} />
+        <NoticeList notices={popularNotices} />
       </section>
     </Layout>
   )

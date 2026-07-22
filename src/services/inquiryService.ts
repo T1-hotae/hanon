@@ -130,6 +130,8 @@ export const getInitialNotices = async (): Promise<Notice[]> =>
       title: String(data.title ?? ''),
       url: String(data.url ?? '#'),
       postedAt: toMillis(data.postedAt ?? data.createdAt),
+      order: Number(data.order ?? 999),
+      viewCount: Number(data.viewCount ?? 0),
     }
   }, false)
 
@@ -194,5 +196,15 @@ export const incrementFaqView = async (faqId: string): Promise<void> => {
     await updateDoc(doc(firestore, 'faqEntries', faqId), { viewCount: increment(1) })
   } catch (error) {
     console.warn('Failed to increment FAQ view count.', error)
+  }
+}
+
+// 공지 조회수 증가. 세션 내 중복 카운트는 호출부(sessionStorage)에서 방지한다.
+export const incrementNoticeView = async (noticeId: string): Promise<void> => {
+  if (!firestore) return
+  try {
+    await updateDoc(doc(firestore, 'notices', noticeId), { viewCount: increment(1) })
+  } catch (error) {
+    console.warn('Failed to increment notice view count.', error)
   }
 }

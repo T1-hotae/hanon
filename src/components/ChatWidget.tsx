@@ -40,11 +40,18 @@ const saveSession = (session: StoredSession | null) => {
 
 const uid = () => Math.random().toString(36).slice(2, 10)
 
+const senderLabel = (from: ChatMessage['from']): string | null => {
+  if (from === 'ai') return 'AI 도우미'
+  if (from === 'admin') return '상담사'
+  if (from === 'bot') return '안내'
+  return null
+}
+
 export function ChatWidget() {
   const { categories, checklists, faqEntries, keywordPresets, notices } = useAcademicData()
   const [open, setOpen] = useState(false)
-  const [category, setCategory] = useState<CategoryId | null>(null)
   const [mode, setMode] = useState<ChatMode | null>(null)
+  const [category, setCategory] = useState<CategoryId | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [customText, setCustomText] = useState('')
@@ -53,13 +60,17 @@ export function ChatWidget() {
   const bodyRef = useRef<HTMLDivElement>(null)
 
   const localMode = conversationId === LOCAL
+  const started = Boolean(conversationId && category && mode)
+
+  // 현재 단계: mode → category → chat
+  const step: 'mode' | 'category' | 'chat' = !mode ? 'mode' : !started ? 'category' : 'chat'
 
   // 저장된 세션 복구
   useEffect(() => {
     const session = loadSession()
     if (session) {
-      setCategory(session.category)
       setMode(session.mode)
+      setCategory(session.category)
       setConversationId(session.conversationId)
     }
   }, [])
@@ -74,39 +85,39 @@ export function ChatWidget() {
   // 열려 있을 때 스크롤 하단 고정 + 읽음 처리
   useEffect(() => {
     if (!open) return
-    bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight })
+    bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: 'smooth' })
     if (conversationId && conversationId !== LOCAL) void markConversationReadByStudent(conversationId)
-  }, [messages, open, conversationId])
+  }, [messages, open, conversationId, aiThinking])
 
   const pushLocal = (from: ChatMessage['from'], text: string) => {
     setMessages((current) => [...current, { id: uid(), from, text, createdAt: Date.now() }])
   }
 
-  // 카테고리 선택 → 다음 단계(상담 방식 선택)로 이동. 아직 대화는 만들지 않는다.
-  const selectCategory = (id: CategoryId) => {
+  // ① 상담 방식 선택 (AI / 관리자 문의)
+  const selectMode = (nextMode: ChatMode) => {
     if (starting) return
-    setCategory(id)
-    setMode(null)
+    setMode(nextMode)
+    setCategory(null)
     setConversationId(null)
     setMessages([])
   }
 
-  // 상담 방식(AI / 상담사) 선택 → 대화 생성 후 채팅 시작.
-  const selectMode = async (nextMode: ChatMode) => {
-    if (!category || starting) return
+  // ② 항목 선택 → 대화 생성 후 채팅 시작
+  const selectCategory = async (id: CategoryId) => {
+    if (!mode || starting) return
     setStarting(true)
-    setMode(nextMode)
-    const convId = await createConversation(category)
+    setCategory(id)
+    const convId = await createConversation(id)
     const nextId = convId ?? LOCAL
     setConversationId(nextId)
     setMessages([])
     if (convId) {
-      saveSession({ conversationId: convId, category, mode: nextMode })
-      if (nextMode === 'human') {
+      saveSession({ conversationId: convId, category: id, mode })
+      if (mode === 'human') {
         await sendStudentMessage(convId, 'bot', '상담사에게 연결했어요. 확인 후 순차적으로 답변드립니다.')
         await escalateToHuman(convId)
       }
-    } else if (nextMode === 'human') {
+    } else if (mode === 'human') {
       pushLocal('bot', '데모 모드에서는 상담사 연결이 지원되지 않습니다. AI 상담을 이용해 주세요.')
     }
     setStarting(false)
@@ -186,7 +197,7 @@ export function ChatWidget() {
     }
   }
 
-  // 상담사 상담: 학생 메시지만 전송. 답변은 관리자가 직접 작성한다.
+  // 관리자 문의: 학생 메시지만 전송. 답변은 관리자가 직접 작성한다.
   const sendToHuman = async (trimmed: string) => {
     if (!category || !conversationId) return
     if (localMode) {
@@ -208,9 +219,9 @@ export function ChatWidget() {
 
   // AI 상담 중 상담사로 전환.
   const switchToHuman = async () => {
-    if (!conversationId) return
+    if (!conversationId || !category) return
     setMode('human')
-    if (category) saveSession({ conversationId, category, mode: 'human' })
+    saveSession({ conversationId, category, mode: 'human' })
     if (localMode) {
       pushLocal('bot', '데모 모드에서는 상담사 연결이 지원되지 않습니다.')
       return
@@ -219,21 +230,17 @@ export function ChatWidget() {
     await escalateToHuman(conversationId)
   }
 
-  const reset = () => {
-    saveSession(null)
-    setConversationId(null)
-    setCategory(null)
-    setMode(null)
-    setMessages([])
+  // 헤더 뒤로가기: 채팅 → 항목선택 → 방식선택
+  const goBack = () => {
     setCustomText('')
-  }
-
-  const backToModeSelect = () => {
-    setMode(null)
-    setConversationId(null)
-    setMessages([])
-    setCustomText('')
-    saveSession(null)
+    if (step === 'chat') {
+      setConversationId(null)
+      setCategory(null)
+      setMessages([])
+      saveSession(null)
+    } else if (step === 'category') {
+      setMode(null)
+    }
   }
 
   const onCustomSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -245,156 +252,182 @@ export function ChatWidget() {
     ? keywordPresets.filter((question) => question.category === category)
     : []
   const activeCategory = categories.find((item) => item.id === category)
-  const started = Boolean(conversationId && mode)
 
-  const headerLabel = () => {
-    if (!activeCategory) return '채팅 문의'
-    if (mode === 'ai') return `${activeCategory.label} · AI 상담`
-    if (mode === 'human') return `${activeCategory.label} · 상담사 상담`
-    return `${activeCategory.label} 상담`
+  const headerTitle = () => {
+    if (step === 'mode') return '채팅 상담'
+    const modeLabel = mode === 'ai' ? 'AI 상담' : '관리자 문의'
+    if (step === 'category') return modeLabel
+    return activeCategory ? `${activeCategory.label} · ${modeLabel}` : modeLabel
   }
 
   return (
     <div className={styles.chatWidget}>
       {open && (
-        <div className={styles.chatPanel} role="dialog" aria-label="채팅 문의">
+        <div className={styles.chatPanel} role="dialog" aria-label="채팅 상담">
           <div className={styles.chatHeader}>
-            <strong>{headerLabel()}</strong>
-            <button type="button" onClick={() => setOpen(false)} aria-label="닫기">
+            {step !== 'mode' ? (
+              <button
+                type="button"
+                className={styles.chatHeaderBack}
+                onClick={goBack}
+                aria-label="뒤로 가기"
+              >
+                ‹
+              </button>
+            ) : (
+              <span className={styles.chatHeaderSpacer} aria-hidden="true" />
+            )}
+            <strong>{headerTitle()}</strong>
+            <button
+              type="button"
+              className={styles.chatHeaderClose}
+              onClick={() => setOpen(false)}
+              aria-label="닫기"
+            >
               ×
             </button>
           </div>
+
           <div className={styles.chatBody} ref={bodyRef}>
-            {!category && (
-              <div className={styles.chatBubbleBot}>
-                <p>안녕하세요. 어떤 항목이 궁금하신가요?</p>
-              </div>
-            )}
-            {category && !started && (
-              <div className={styles.chatBubbleBot}>
-                <p>
-                  {activeCategory?.label} 상담을 어떤 방식으로 진행할까요? AI 상담은 즉시 답변을
-                  받을 수 있고, 상담사 상담은 담당자가 직접 확인 후 답변드립니다.
-                </p>
-              </div>
-            )}
-            {started && messages.length === 0 && mode === 'ai' && (
-              <div className={styles.chatBubbleBot}>
-                <p>
-                  {activeCategory?.label} 관련 궁금한 점을 선택하거나 직접 입력해 주세요. AI가 바로
-                  답변해 드립니다.
-                </p>
-              </div>
-            )}
-            {started && messages.length === 0 && mode === 'human' && (
-              <div className={styles.chatBubbleBot}>
-                <p>
-                  {activeCategory?.label} 관련 문의 내용을 남겨 주세요. 상담사가 확인 후 순차적으로
-                  답변드립니다.
-                </p>
-              </div>
-            )}
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={message.from === 'student' ? styles.chatBubbleUser : styles.chatBubbleBot}
-              >
-                {(message.from === 'ai' || message.from === 'admin') && (
-                  <span className={styles.chatBubbleTag}>
-                    {message.from === 'ai' ? 'AI' : '상담사'}
-                  </span>
-                )}
-                <p>{message.text}</p>
-              </div>
-            ))}
-            {aiThinking && (
-              <div className={styles.chatBubbleBot}>
-                <p>답변을 작성하고 있어요…</p>
-              </div>
-            )}
-          </div>
-          <div className={styles.chatOptions}>
-            {!category && (
-              <div className={styles.chatQuickGrid}>
-                {categories.map((item) => (
+            {step === 'mode' && (
+              <div className={styles.chatIntro}>
+                <div className={styles.chatBubbleBot}>
+                  <p>안녕하세요! 어떻게 상담을 도와드릴까요?</p>
+                </div>
+                <div className={styles.chatModeGrid}>
                   <button
                     type="button"
-                    key={item.id}
+                    className={styles.chatModeCard}
                     disabled={starting}
-                    onClick={() => selectCategory(item.id)}
+                    onClick={() => selectMode('ai')}
                   >
-                    {item.label}
+                    <span className={styles.chatModeIcon} aria-hidden="true">🤖</span>
+                    <strong>AI 상담</strong>
+                    <span>학사 안내를 바탕으로 즉시 답변해 드려요.</span>
                   </button>
-                ))}
-              </div>
-            )}
-            {category && !started && (
-              <div className={styles.chatModeGrid}>
-                <button
-                  type="button"
-                  className={styles.chatModeCard}
-                  disabled={starting}
-                  onClick={() => void selectMode('ai')}
-                >
-                  <strong>🤖 AI 채팅</strong>
-                  <span>학사 안내를 바탕으로 즉시 답변</span>
-                </button>
-                <button
-                  type="button"
-                  className={styles.chatModeCard}
-                  disabled={starting}
-                  onClick={() => void selectMode('human')}
-                >
-                  <strong>💬 상담사 채팅</strong>
-                  <span>담당자가 직접 확인 후 답변</span>
-                </button>
-                <button type="button" className={styles.chatTextButton} onClick={reset}>
-                  ← 다른 항목 선택
-                </button>
-              </div>
-            )}
-            {started && (
-              <>
-                <div className={styles.chatQuickGrid}>
-                  {mode === 'ai' &&
-                    categoryQuestions.map((question) => (
-                      <button
-                        type="button"
-                        key={question.id}
-                        disabled={aiThinking}
-                        onClick={() => void send(question.text)}
-                      >
-                        {question.text}
-                      </button>
-                    ))}
-                  {mode === 'ai' && (
-                    <button type="button" onClick={() => void switchToHuman()}>
-                      상담사 연결
-                    </button>
-                  )}
-                  <button type="button" onClick={backToModeSelect}>
-                    상담 방식 변경
-                  </button>
-                  <button type="button" onClick={reset}>
-                    다른 항목 선택
+                  <button
+                    type="button"
+                    className={styles.chatModeCard}
+                    disabled={starting}
+                    onClick={() => selectMode('human')}
+                  >
+                    <span className={styles.chatModeIcon} aria-hidden="true">💬</span>
+                    <strong>관리자 문의</strong>
+                    <span>담당 상담사가 직접 확인 후 답변드려요.</span>
                   </button>
                 </div>
-                <form className={styles.chatCustomForm} onSubmit={onCustomSubmit}>
-                  <input
-                    value={customText}
-                    onChange={(event) => setCustomText(event.target.value)}
-                    placeholder={
-                      mode === 'ai' ? '궁금한 내용을 입력해 주세요' : '상담사에게 남길 내용을 입력해 주세요'
-                    }
-                    aria-label="문의 내용"
-                  />
-                  <button type="submit" disabled={aiThinking}>
-                    보내기
-                  </button>
-                </form>
+              </div>
+            )}
+
+            {step === 'category' && (
+              <div className={styles.chatIntro}>
+                <div className={styles.chatBubbleBot}>
+                  <p>
+                    어떤 항목이 궁금하신가요? {mode === 'ai' ? 'AI가 바로' : '상담사가 확인 후'} 답변해
+                    드립니다.
+                  </p>
+                </div>
+                <div className={styles.chatCategoryGrid}>
+                  {categories.map((item) => (
+                    <button
+                      type="button"
+                      key={item.id}
+                      className={styles.chatCategoryCard}
+                      disabled={starting}
+                      onClick={() => void selectCategory(item.id)}
+                    >
+                      <strong>{item.label}</strong>
+                      {item.description && <span>{item.description}</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {step === 'chat' && (
+              <>
+                {messages.length === 0 && (
+                  <div className={styles.chatBubbleBot}>
+                    {senderLabel(mode === 'ai' ? 'ai' : 'admin') && (
+                      <span className={styles.chatBubbleTag}>
+                        {mode === 'ai' ? 'AI 도우미' : '상담사'}
+                      </span>
+                    )}
+                    <p>
+                      {mode === 'ai'
+                        ? `${activeCategory?.label} 관련 궁금한 점을 선택하거나 직접 입력해 주세요.`
+                        : `${activeCategory?.label} 관련 문의 내용을 남겨 주세요. 상담사가 확인 후 순차적으로 답변드립니다.`}
+                    </p>
+                  </div>
+                )}
+                {messages.map((message) => {
+                  const label = senderLabel(message.from)
+                  return (
+                    <div
+                      key={message.id}
+                      className={
+                        message.from === 'student' ? styles.chatBubbleUser : styles.chatBubbleBot
+                      }
+                    >
+                      {label && <span className={styles.chatBubbleTag}>{label}</span>}
+                      <p>{message.text}</p>
+                    </div>
+                  )
+                })}
+                {aiThinking && (
+                  <div className={styles.chatBubbleBot}>
+                    <span className={styles.chatBubbleTag}>AI 도우미</span>
+                    <p className={styles.chatTyping}>
+                      <span />
+                      <span />
+                      <span />
+                    </p>
+                  </div>
+                )}
               </>
             )}
           </div>
+
+          {step === 'chat' && (
+            <div className={styles.chatOptions}>
+              {mode === 'ai' && (
+                <div className={styles.chatQuickGrid}>
+                  {categoryQuestions.map((question) => (
+                    <button
+                      type="button"
+                      key={question.id}
+                      disabled={aiThinking}
+                      onClick={() => void send(question.text)}
+                    >
+                      {question.text}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className={styles.chatQuickAccent}
+                    onClick={() => void switchToHuman()}
+                  >
+                    상담사 연결하기
+                  </button>
+                </div>
+              )}
+              <form className={styles.chatCustomForm} onSubmit={onCustomSubmit}>
+                <input
+                  value={customText}
+                  onChange={(event) => setCustomText(event.target.value)}
+                  placeholder={
+                    mode === 'ai'
+                      ? '궁금한 내용을 입력해 주세요'
+                      : '상담사에게 남길 내용을 입력해 주세요'
+                  }
+                  aria-label="문의 내용"
+                />
+                <button type="submit" disabled={aiThinking}>
+                  보내기
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       )}
       <button
@@ -402,7 +435,7 @@ export function ChatWidget() {
         className={styles.chatToggle}
         onClick={() => setOpen((current) => !current)}
       >
-        {open ? '닫기' : '채팅 문의'}
+        {open ? '닫기' : '채팅 상담'}
       </button>
     </div>
   )
