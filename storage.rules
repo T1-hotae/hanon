@@ -1,0 +1,35 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // 업로드 공통 검증: 이미지 형식(jpg/png/webp/gif) + 10MB 이하
+    function isValidImage() {
+      return request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp|gif)');
+    }
+
+    // 학생 문의 첨부 이미지: 누구나 이미지 업로드/조회 가능(익명 학생)
+    match /inquiries/{inquiryId}/{fileName} {
+      allow read: if true;
+      allow create: if isValidImage();
+      allow update, delete: if signedIn();
+    }
+
+    // 답변 첨부 이미지: 조회는 공개, 쓰기는 관리자(Auth)만
+    match /faq-answers/{faqId}/{fileName} {
+      allow read: if true;
+      allow write: if signedIn() && isValidImage();
+      allow delete: if signedIn();
+    }
+
+    // 그 외 경로: 관리자만
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+  }
+}

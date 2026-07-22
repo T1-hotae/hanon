@@ -2,7 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(npm init *)",
-      "Bash(node chat-widget-test.mjs)"
+      "Bash(node chat-widget-test.mjs)",
+      "Bash(npx vite *)",
+      "Bash(npx playwright *)",
+      "Bash(node debug2.mjs)",
+      "Bash([ -d \"$ADMIN\" ])",
+      "Bash(find /c/Users/USER/Desktop/han-non-e-admin -type f -not -path */node_modules/* -not -path */.git/* -not -path */target/* -not -path */dist/*)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\USER\\Desktop\\han-non-e-admin\\src",
+      "c:\\Users\\USER\\Desktop\\han-non-e-admin"
     ]
   }
 }

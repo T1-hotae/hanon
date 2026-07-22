@@ -9,6 +9,7 @@ import {
   getKeywordPresets,
   isFirestoreConfigured,
 } from '../services/inquiryService'
+import { ensureAnonymousAuth } from '../services/chatService'
 import { AcademicDataContext, type AcademicDataValue } from './academicDataContextObject'
 import type {
   Category,
@@ -29,6 +30,9 @@ export const AcademicDataProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // 익명 로그인(FAQ 조회수 갱신·채팅에 필요). 실패해도 읽기는 그대로 동작.
+    void ensureAnonymousAuth()
+
     Promise.all([
       getCategories(),
       getKeywordPresets(),

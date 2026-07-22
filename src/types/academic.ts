@@ -45,7 +45,28 @@ export type FaqEntry = {
   relatedNoticeIds: string[]
   order: number
   pinned: boolean
+  viewCount: number
   updatedAt: number
+}
+
+export type ChatMessage = {
+  id: string
+  from: 'student' | 'admin' | 'bot'
+  text: string
+  imageUrls?: string[]
+  createdAt: number
+}
+
+export type Conversation = {
+  id: string
+  studentId: string
+  category: CategoryId
+  status: 'open' | 'answered'
+  lastMessage: string
+  lastMessageAt: number
+  createdAt: number
+  unreadForAdmin: boolean
+  unreadForStudent: boolean
 }
 
 export type ChecklistItem = {
@@ -98,4 +119,6 @@ export const CATEGORIES: Category[] = [
 ]
 
 export const getCategory = (id: CategoryId, categories: Category[] = CATEGORIES) =>
-  categories.find((category) => category.id === id) ?? categories.find((category) => category.id === 'etc') ?? CATEGORIES[3]
+  categories.find((category) => category.id === id) ??
+  categories.find((category) => category.id === 'etc') ??
+  CATEGORIES[3]

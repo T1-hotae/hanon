@@ -1,160 +1,201 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useAcademicData } from '../context/useAcademicData'
-import type { CategoryId } from '../types/academic'
+import {
+  createConversation,
+  markConversationReadByStudent,
+  sendStudentMessage,
+  subscribeMessages,
+} from '../services/chatService'
+import { createChatInquiry } from '../services/inquiryService'
+import type { CategoryId, ChatMessage } from '../types/academic'
 import styles from '../App.module.css'
 
-type BotMessage = {
-  id: string
-  from: 'bot'
-  text: string
-  notices?: { id: string; title: string; url: string }[]
+const STORAGE_KEY = 'hannon-chat-session'
+const LOCAL = 'local'
+
+type StoredSession = { conversationId: string; category: CategoryId }
+
+const loadSession = (): StoredSession | null => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? (JSON.parse(raw) as StoredSession) : null
+  } catch {
+    return null
+  }
 }
-type UserMessage = { id: string; from: 'user'; text: string }
-type Message = BotMessage | UserMessage
+
+const saveSession = (session: StoredSession | null) => {
+  try {
+    if (session) localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+    else localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // localStorage 접근 불가 시 무시
+  }
+}
 
 const uid = () => Math.random().toString(36).slice(2, 10)
 
-const initialMessage: Message = {
-  id: uid(),
-  from: 'bot',
-  text: '안녕하세요. 어떤 항목이 궁금하신가요?',
-}
-
 export function ChatWidget() {
-  const { addChatInquiry, categories, faqEntries, keywordPresets, notices } = useAcademicData()
+  const { categories, faqEntries, keywordPresets } = useAcademicData()
   const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([initialMessage])
   const [category, setCategory] = useState<CategoryId | null>(null)
-  const [customMode, setCustomMode] = useState(false)
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [customText, setCustomText] = useState('')
+  const [starting, setStarting] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
 
+  const localMode = conversationId === LOCAL
+
+  // 저장된 세션 복구
+  useEffect(() => {
+    const session = loadSession()
+    if (session) {
+      setCategory(session.category)
+      setConversationId(session.conversationId)
+    }
+  }, [])
+
+  // 메시지 실시간 구독 (로컬 모드는 제외)
+  useEffect(() => {
+    if (!conversationId || conversationId === LOCAL) return
+    const unsubscribe = subscribeMessages(conversationId, setMessages)
+    return unsubscribe
+  }, [conversationId])
+
+  // 열려 있을 때 스크롤 하단 고정 + 읽음 처리
   useEffect(() => {
     if (!open) return
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight })
-  }, [messages, open])
+    if (conversationId && conversationId !== LOCAL) void markConversationReadByStudent(conversationId)
+  }, [messages, open, conversationId])
 
-  const pushBot = (text: string, noticeIds?: string[]) => {
-    const related = noticeIds?.length
-      ? notices.filter((notice) => noticeIds.includes(notice.id))
-      : undefined
-    setMessages((current) => [...current, { id: uid(), from: 'bot', text, notices: related }])
-  }
-
-  const pushUser = (text: string) => {
-    setMessages((current) => [...current, { id: uid(), from: 'user', text }])
-  }
-
-  const selectCategory = (id: CategoryId) => {
-    const found = categories.find((item) => item.id === id)
-    if (!found) return
+  const selectCategory = async (id: CategoryId) => {
+    if (starting) return
+    setStarting(true)
     setCategory(id)
-    setCustomMode(false)
-    pushUser(found.label)
-    pushBot(`${found.label} 관련 자주 묻는 질문을 선택하거나 직접 입력해 주세요.`)
+    const convId = await createConversation(id)
+    const nextId = convId ?? LOCAL
+    setConversationId(nextId)
+    setMessages([])
+    if (convId) saveSession({ conversationId: convId, category: id })
+    setStarting(false)
   }
 
-  const ask = async (questionText: string) => {
-    if (!category) return
-    pushUser(questionText)
-    const faq = faqEntries.find(
-      (item) => item.category === category && item.question === questionText,
-    )
+  const pushLocal = (from: ChatMessage['from'], text: string) => {
+    setMessages((current) => [...current, { id: uid(), from, text, createdAt: Date.now() }])
+  }
 
-    await addChatInquiry(category, questionText)
-
-    if (faq) {
-      pushBot(faq.answer, faq.relatedNoticeIds)
-    } else {
-      pushBot('문의가 접수되었습니다. 담당자가 확인 후 FAQ로 게시하면 이 화면에서도 확인할 수 있습니다.')
-    }
-    setCustomMode(false)
+  const send = async (text: string) => {
+    const trimmed = text.trim()
+    if (!trimmed || !category || !conversationId) return
     setCustomText('')
+
+    const faq = faqEntries.find((item) => item.category === category && item.question === trimmed)
+
+    if (localMode) {
+      pushLocal('student', trimmed)
+      if (faq) pushLocal('bot', faq.answer)
+      else pushLocal('bot', '문의가 접수되었습니다. 담당자가 확인 후 답변드립니다.')
+      return
+    }
+
+    await sendStudentMessage(conversationId, 'student', trimmed)
+    // 문의 로그(빈도 대시보드용)
+    void createChatInquiry(category, trimmed, undefined, conversationId)
+    // 매칭되는 FAQ가 있으면 봇 자동응답을 함께 남긴다.
+    if (faq) await sendStudentMessage(conversationId, 'bot', faq.answer)
   }
 
   const reset = () => {
+    saveSession(null)
+    setConversationId(null)
     setCategory(null)
-    setCustomMode(false)
+    setMessages([])
     setCustomText('')
-    pushBot('다른 궁금한 점이 있으신가요? 항목을 선택해 주세요.')
   }
 
   const onCustomSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const trimmed = customText.trim()
-    if (trimmed) void ask(trimmed)
+    void send(customText)
   }
 
   const categoryQuestions = category
     ? keywordPresets.filter((question) => question.category === category)
     : []
+  const activeCategory = categories.find((item) => item.id === category)
+  const started = Boolean(conversationId)
 
   return (
     <div className={styles.chatWidget}>
       {open && (
         <div className={styles.chatPanel} role="dialog" aria-label="채팅 문의">
           <div className={styles.chatHeader}>
-            <strong>채팅 문의</strong>
+            <strong>{activeCategory ? `${activeCategory.label} 상담` : '채팅 문의'}</strong>
             <button type="button" onClick={() => setOpen(false)} aria-label="닫기">
               ×
             </button>
           </div>
           <div className={styles.chatBody} ref={bodyRef}>
+            {!started && (
+              <div className={styles.chatBubbleBot}>
+                <p>안녕하세요. 어떤 항목이 궁금하신가요?</p>
+              </div>
+            )}
+            {started && messages.length === 0 && (
+              <div className={styles.chatBubbleBot}>
+                <p>
+                  {activeCategory?.label} 관련 궁금한 점을 선택하거나 직접 입력해 주세요. 담당자가
+                  확인 후 답변드립니다.
+                </p>
+              </div>
+            )}
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={message.from === 'bot' ? styles.chatBubbleBot : styles.chatBubbleUser}
+                className={message.from === 'student' ? styles.chatBubbleUser : styles.chatBubbleBot}
               >
                 <p>{message.text}</p>
-                {message.from === 'bot' && message.notices?.length ? (
-                  <ul>
-                    {message.notices.map((notice) => (
-                      <li key={notice.id}>
-                        <a href={notice.url} target="_blank" rel="noreferrer">
-                          {notice.title}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
               </div>
             ))}
           </div>
           <div className={styles.chatOptions}>
-            {!category && (
+            {!started && (
               <div className={styles.chatQuickGrid}>
                 {categories.map((item) => (
-                  <button type="button" key={item.id} onClick={() => selectCategory(item.id)}>
+                  <button
+                    type="button"
+                    key={item.id}
+                    disabled={starting}
+                    onClick={() => void selectCategory(item.id)}
+                  >
                     {item.label}
                   </button>
                 ))}
               </div>
             )}
-            {category && !customMode && (
-              <div className={styles.chatQuickGrid}>
-                {categoryQuestions.map((question) => (
-                  <button type="button" key={question.id} onClick={() => void ask(question.text)}>
-                    {question.text}
+            {started && (
+              <>
+                <div className={styles.chatQuickGrid}>
+                  {categoryQuestions.map((question) => (
+                    <button type="button" key={question.id} onClick={() => void send(question.text)}>
+                      {question.text}
+                    </button>
+                  ))}
+                  <button type="button" onClick={reset}>
+                    다른 항목 선택
                   </button>
-                ))}
-                <button type="button" onClick={() => setCustomMode(true)}>
-                  목록에 없는 문의 직접 입력
-                </button>
-                <button type="button" onClick={reset}>
-                  다른 항목 선택
-                </button>
-              </div>
-            )}
-            {category && customMode && (
-              <form className={styles.chatCustomForm} onSubmit={onCustomSubmit}>
-                <input
-                  value={customText}
-                  onChange={(event) => setCustomText(event.target.value)}
-                  placeholder="궁금한 내용을 입력해 주세요"
-                  aria-label="문의 내용"
-                />
-                <button type="submit">보내기</button>
-              </form>
+                </div>
+                <form className={styles.chatCustomForm} onSubmit={onCustomSubmit}>
+                  <input
+                    value={customText}
+                    onChange={(event) => setCustomText(event.target.value)}
+                    placeholder="궁금한 내용을 입력해 주세요"
+                    aria-label="문의 내용"
+                  />
+                  <button type="submit">보내기</button>
+                </form>
+              </>
             )}
           </div>
         </div>

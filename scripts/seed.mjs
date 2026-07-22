@@ -78,10 +78,10 @@ const notices = [
 ]
 
 const faqEntries = [
-  { id: 'faq-transfer-1', categoryId: 'transfer', question: '전과 지원 자격이 어떻게 되나요?', answer: '직전 학기까지 정해진 학점을 이수하고 학칙상 제한 사유가 없어야 합니다. 학과별 선발 기준이 다르므로 모집 공고의 지원 자격 표를 함께 확인하세요.', answerImageUrls: [], relatedNoticeIds: ['n-transfer-1'], order: 1, pinned: true },
-  { id: 'faq-course-1', categoryId: 'course', question: '예비수강신청과 본수강신청의 차이가 무엇인가요?', answer: '예비수강신청은 수요 조사 성격이며 실제 수강 확정은 본수강신청 기간의 신청 결과에 따라 결정됩니다.', answerImageUrls: [], relatedNoticeIds: ['n-course-1'], order: 1, pinned: true },
-  { id: 'faq-leave-1', categoryId: 'leave', question: '휴학 신청 기간은 언제인가요?', answer: '2026학년도 2학기 휴학 신청은 2026년 7월 29일부터 학사 포털에서 가능하며, 종류별 마감일이 다를 수 있습니다.', answerImageUrls: [], relatedNoticeIds: ['n-leave-1'], order: 1, pinned: true },
-  { id: 'faq-etc-1', categoryId: 'etc', question: '성적 정정 기간은 언제인가요?', answer: '계절학기 성적 정정은 공지된 기간 안에 담당 교원 확인 후 처리됩니다. 정확한 일정은 성적 공지를 확인하세요.', answerImageUrls: [], relatedNoticeIds: ['n-etc-1'], order: 1, pinned: true },
+  { id: 'faq-transfer-1', categoryId: 'transfer', question: '전과 지원 자격이 어떻게 되나요?', answer: '직전 학기까지 정해진 학점을 이수하고 학칙상 제한 사유가 없어야 합니다. 학과별 선발 기준이 다르므로 모집 공고의 지원 자격 표를 함께 확인하세요.', answerImageUrls: [], relatedNoticeIds: ['n-transfer-1'], order: 1, pinned: true, viewCount: 0 },
+  { id: 'faq-course-1', categoryId: 'course', question: '예비수강신청과 본수강신청의 차이가 무엇인가요?', answer: '예비수강신청은 수요 조사 성격이며 실제 수강 확정은 본수강신청 기간의 신청 결과에 따라 결정됩니다.', answerImageUrls: [], relatedNoticeIds: ['n-course-1'], order: 1, pinned: true, viewCount: 0 },
+  { id: 'faq-leave-1', categoryId: 'leave', question: '휴학 신청 기간은 언제인가요?', answer: '2026학년도 2학기 휴학 신청은 2026년 7월 29일부터 학사 포털에서 가능하며, 종류별 마감일이 다를 수 있습니다.', answerImageUrls: [], relatedNoticeIds: ['n-leave-1'], order: 1, pinned: true, viewCount: 0 },
+  { id: 'faq-etc-1', categoryId: 'etc', question: '성적 정정 기간은 언제인가요?', answer: '계절학기 성적 정정은 공지된 기간 안에 담당 교원 확인 후 처리됩니다. 정확한 일정은 성적 공지를 확인하세요.', answerImageUrls: [], relatedNoticeIds: ['n-etc-1'], order: 1, pinned: true, viewCount: 0 },
 ]
 
 const upsertAll = async (collectionName, rows) => {

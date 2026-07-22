@@ -1,11 +1,14 @@
 import {
   addDoc,
   collection,
+  doc,
   getDocs,
+  increment,
   orderBy,
   query,
   serverTimestamp,
   Timestamp,
+  updateDoc,
   type DocumentData,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore'
@@ -94,6 +97,7 @@ export const getFaqEntries = () =>
       relatedNoticeIds: Array.isArray(data.relatedNoticeIds) ? data.relatedNoticeIds.map(String) : [],
       order: Number(data.order ?? 0),
       pinned: Boolean(data.pinned),
+      viewCount: Number(data.viewCount ?? 0),
       updatedAt: toMillis(data.updatedAt),
     }
   })
@@ -165,6 +169,7 @@ export const createChatInquiry = async (
   category: CategoryId,
   keyword: string,
   detail?: string,
+  conversationId?: string,
 ): Promise<Inquiry> => {
   const local = createLocalInquiry('chat', category, keyword)
   if (!firestore) return local
@@ -175,8 +180,19 @@ export const createChatInquiry = async (
     keyword,
     detail: detail ?? '',
     status: 'pending',
+    conversationId: conversationId ?? null,
     createdAt: serverTimestamp(),
   })
 
   return { ...local, id: docRef.id }
+}
+
+// FAQ 조회수 증가. 세션 내 중복 카운트는 호출부(localStorage)에서 방지한다.
+export const incrementFaqView = async (faqId: string): Promise<void> => {
+  if (!firestore) return
+  try {
+    await updateDoc(doc(firestore, 'faqEntries', faqId), { viewCount: increment(1) })
+  } catch (error) {
+    console.warn('Failed to increment FAQ view count.', error)
+  }
 }

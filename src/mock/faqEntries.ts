@@ -12,6 +12,7 @@ export const mockFaqEntries: FaqEntry[] = [
     relatedNoticeIds: ['n-transfer-1', 'n-transfer-2'],
     order: 1,
     pinned: true,
+    viewCount: 0,
     updatedAt: day('2026-07-19'),
   },
   {
@@ -23,6 +24,7 @@ export const mockFaqEntries: FaqEntry[] = [
     relatedNoticeIds: ['n-transfer-1'],
     order: 2,
     pinned: false,
+    viewCount: 0,
     updatedAt: day('2026-07-19'),
   },
   {
@@ -34,6 +36,7 @@ export const mockFaqEntries: FaqEntry[] = [
     relatedNoticeIds: ['n-course-1', 'n-course-2'],
     order: 1,
     pinned: true,
+    viewCount: 0,
     updatedAt: day('2026-07-18'),
   },
   {
@@ -45,6 +48,7 @@ export const mockFaqEntries: FaqEntry[] = [
     relatedNoticeIds: ['n-course-4'],
     order: 2,
     pinned: false,
+    viewCount: 0,
     updatedAt: day('2026-07-17'),
   },
   {
@@ -56,6 +60,7 @@ export const mockFaqEntries: FaqEntry[] = [
     relatedNoticeIds: ['n-leave-1'],
     order: 1,
     pinned: true,
+    viewCount: 0,
     updatedAt: day('2026-07-18'),
   },
   {
@@ -67,6 +72,7 @@ export const mockFaqEntries: FaqEntry[] = [
     relatedNoticeIds: ['n-leave-2'],
     order: 2,
     pinned: false,
+    viewCount: 0,
     updatedAt: day('2026-07-17'),
   },
   {
@@ -78,6 +84,7 @@ export const mockFaqEntries: FaqEntry[] = [
     relatedNoticeIds: ['n-etc-2'],
     order: 1,
     pinned: true,
+    viewCount: 0,
     updatedAt: day('2026-07-17'),
   },
 ]

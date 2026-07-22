@@ -6,29 +6,38 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // 관리자 = 이메일/비밀번호로 로그인한 사용자. 익명(학생)과 구분한다.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'password';
+    }
+
     match /categories/{document=**} {
       allow read: if true;
-      allow write: if signedIn();
+      allow write: if isAdmin();
     }
 
     match /keywordPresets/{document=**} {
       allow read: if true;
-      allow write: if signedIn();
+      allow write: if isAdmin();
     }
 
-    match /faqEntries/{document=**} {
+    match /faqEntries/{faqId} {
       allow read: if true;
-      allow write: if signedIn();
+      allow write: if isAdmin();
+      // 학생(로그인 사용자)은 조회수(viewCount)만 갱신할 수 있다.
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']);
     }
 
     match /checklists/{document=**} {
       allow read: if true;
-      allow write: if signedIn();
+      allow write: if isAdmin();
     }
 
     match /notices/{document=**} {
       allow read: if true;
-      allow write: if signedIn();
+      allow write: if isAdmin();
     }
 
     match /inquiries/{inquiryId} {
@@ -37,7 +46,35 @@ service cloud.firestore {
         request.resource.data.categoryId in ['transfer', 'course', 'leave', 'etc'] &&
         request.resource.data.keyword is string &&
         request.resource.data.status == 'pending';
-      allow read, update, delete: if signedIn();
+      allow read, update, delete: if isAdmin();
+    }
+
+    // 실시간 채팅 대화. 학생은 본인(studentId == uid) 대화만, 관리자는 전체.
+    match /conversations/{conversationId} {
+      function ownsConversation() {
+        return signedIn() && resource.data.studentId == request.auth.uid;
+      }
+
+      allow create: if signedIn()
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.status == 'open';
+      allow read: if isAdmin() || ownsConversation();
+      allow update: if isAdmin() || ownsConversation();
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        function ownsParent() {
+          return signedIn()
+            && get(/databases/$(database)/documents/conversations/$(conversationId)).data.studentId == request.auth.uid;
+        }
+
+        allow read: if isAdmin() || ownsParent();
+        // 학생은 student/bot 메시지만, 관리자는 admin 메시지만 생성.
+        allow create: if
+          (isAdmin() && request.resource.data.from == 'admin') ||
+          (ownsParent() && request.resource.data.from in ['student', 'bot']);
+        allow update, delete: if isAdmin();
+      }
     }
   }
 }

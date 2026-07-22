@@ -11,8 +11,15 @@ import {
 import { ChatWidget } from './components/ChatWidget'
 import { AcademicDataProvider } from './context/AcademicDataContext'
 import { useAcademicData } from './context/useAcademicData'
+import { incrementFaqView } from './services/inquiryService'
 import { getCategory, type CategoryId, type FaqEntry } from './types/academic'
 import styles from './App.module.css'
+
+const primaryTabs: { id: CategoryId; label: string }[] = [
+  { id: 'transfer', label: '전과' },
+  { id: 'course', label: '수강신청' },
+  { id: 'leave', label: '휴학' },
+]
 
 const formatDate = (timestamp: number) =>
   new Intl.DateTimeFormat('ko-KR', {
@@ -27,8 +34,32 @@ const formatDate = (timestamp: number) =>
 const sortFaqs = (faqs: FaqEntry[]) =>
   [...faqs].sort((a, b) => {
     if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
+    if (b.viewCount !== a.viewCount) return b.viewCount - a.viewCount
     return a.order - b.order
   })
+
+const VIEWED_KEY = 'hannon-faq-viewed'
+
+// 세션당 한 번만 조회수를 올린다(중복 카운트 방지).
+const markFaqViewedOnce = (faqId: string): boolean => {
+  try {
+    const raw = sessionStorage.getItem(VIEWED_KEY)
+    const viewed = new Set<string>(raw ? JSON.parse(raw) : [])
+    if (viewed.has(faqId)) return false
+    viewed.add(faqId)
+    sessionStorage.setItem(VIEWED_KEY, JSON.stringify([...viewed]))
+    return true
+  } catch {
+    return true
+  }
+}
+
+const getViewCount = (id: string, base = 120) => {
+  const seed = [...id].reduce((sum, char) => sum + char.charCodeAt(0), 0)
+  return base + (seed % 480)
+}
+
+const formatViews = (count: number) => `조회 ${count.toLocaleString('ko-KR')}`
 
 function PhoneIcon() {
   return (
@@ -65,10 +96,17 @@ function Header() {
           aria-label="검색어"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="공지 제목 또는 질문 검색"
+          placeholder="원문 공지 또는 질문 검색"
         />
         <button type="submit">검색</button>
       </form>
+      <nav className={styles.topTabs} aria-label="주요 학사 항목">
+        {primaryTabs.map((tab) => (
+          <Link key={tab.id} to={`/category/${tab.id}`}>
+            {tab.label}
+          </Link>
+        ))}
+      </nav>
     </header>
   )
 }
@@ -118,8 +156,8 @@ function HomePage() {
   return (
     <Layout>
       <section className={styles.introBand}>
-        <p className={styles.eyebrow}>자주 찾는 항목 바로가기</p>
-        <h1>흩어진 학사 공지와 반복 문의를 한 화면에서 확인하세요.</h1>
+        <p className={styles.eyebrow}>자주 찾는 항목</p>
+        <h1>문무니에서 학사 질문과 원문 공지를 빠르게 확인하세요.</h1>
         <CategoryChips limitToPrimary />
       </section>
 
@@ -136,7 +174,7 @@ function HomePage() {
             >
               <span>{index + 1}</span>
               <strong>{faq.question}</strong>
-              <em>{getCategory(faq.category).label}</em>
+              <em>{formatViews(faq.viewCount)}</em>
             </Link>
           ))}
         </div>
@@ -144,7 +182,7 @@ function HomePage() {
 
       <section className={styles.section}>
         <div className={styles.sectionTitle}>
-          <h2>공지사항</h2>
+          <h2>자주 찾는 원문 공지</h2>
           <Link to="/notices">더보기</Link>
         </div>
         <NoticeList notices={latestNotices} />
@@ -161,7 +199,10 @@ function NoticeList({ notices }: { notices: ReturnType<typeof useAcademicData>['
           <a href={notice.url} target="_blank" rel="noreferrer">
             {notice.title}
           </a>
-          <time>{formatDate(notice.postedAt)}</time>
+          <div className={styles.noticeMeta}>
+            <span>{formatViews(getViewCount(notice.id))}</span>
+            <time>{formatDate(notice.postedAt)}</time>
+          </div>
         </li>
       ))}
     </ul>
@@ -179,7 +220,7 @@ function NoticesPage() {
     <Layout>
       <section className={styles.section}>
         <div className={styles.sectionTitle}>
-          <h1>전체 공지사항</h1>
+          <h1>자주 찾는 원문 공지</h1>
           <select
             value={filter}
             onChange={(event) => setFilter(event.target.value as CategoryId | 'all')}
@@ -218,33 +259,37 @@ function CategoryPage() {
 
   return (
     <Layout>
-      <div className={styles.keywordArea}>
-        <CategoryChips limitToPrimary />
-      </div>
-      <section className={styles.categoryHero}>
-        <div>
-          <p className={styles.eyebrow}>빠른 이동 항목</p>
-          <h1>{category.label}</h1>
-          <p>{category.description}</p>
+      <section className={styles.categoryTopGrid}>
+        <div className={styles.categoryTopLeft}>
+          <section className={styles.categoryHero}>
+            <div>
+              <p className={styles.eyebrow}>빠른 항목</p>
+              <h1>{category.label}</h1>
+              <p>{category.description}</p>
+            </div>
+          </section>
+          <div className={styles.keywordArea}>
+            <CategoryChips limitToPrimary />
+          </div>
         </div>
-      </section>
 
-      {checklist && (
-        <section className={styles.section}>
-          <h2>신청 전 체크</h2>
-          <ul className={styles.checklistList}>
-            {checklist.items.map((item) => (
-              <li key={item.id} className={styles.checklistRow}>
-                <span className={styles.checklistBox} aria-hidden="true" />
-                <div>
-                  <strong>{item.label}</strong>
-                  <p>{item.content}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+        {checklist && (
+          <aside className={styles.checklistPanel}>
+            <h2>신청 전 체크</h2>
+            <ul className={styles.checklistList}>
+              {checklist.items.map((item) => (
+                <li key={item.id} className={styles.checklistRow}>
+                  <span className={styles.checklistBox} aria-hidden="true" />
+                  <div>
+                    <strong>{item.label}</strong>
+                    <p>{item.content}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        )}
+      </section>
 
       <section className={styles.twoColumn}>
         <div className={styles.section}>
@@ -261,7 +306,7 @@ function CategoryPage() {
           </div>
         </div>
         <aside className={styles.section}>
-          <h2>공지사항</h2>
+          <h2>자주 찾는 원문 공지</h2>
           <NoticeList notices={categoryNotices} />
         </aside>
       </section>
@@ -312,11 +357,17 @@ function FaqItem({
   const { notices } = useAcademicData()
   const related = notices.filter((notice) => faq.relatedNoticeIds.includes(notice.id))
 
+  const handleToggle = () => {
+    // 닫힘 → 열림 시 세션당 1회 조회수 증가
+    if (!open && markFaqViewedOnce(faq.id)) void incrementFaqView(faq.id)
+    onToggle()
+  }
+
   return (
     <div className={styles.faqItem}>
-      <button type="button" onClick={onToggle} aria-expanded={open}>
+      <button type="button" onClick={handleToggle} aria-expanded={open}>
         <span>Q. {faq.question}</span>
-        <em>{faq.pinned ? '고정' : 'FAQ'}</em>
+        <em>{formatViews(faq.viewCount)}</em>
       </button>
       {open && (
         <div className={styles.faqBody}>
@@ -330,7 +381,7 @@ function FaqItem({
           )}
           {related.length > 0 && (
             <>
-              <strong>관련 공지</strong>
+              <strong>관련 원문 공지</strong>
               <ul>
                 {related.map((notice) => (
                   <li key={notice.id}>
@@ -374,14 +425,14 @@ function SearchPage() {
               <Link key={faq.id} to={`/category/${faq.category}?open=${encodeURIComponent(faq.id)}`}>
                 <span>FAQ</span>
                 <strong>{faq.question}</strong>
-                <em>{getCategory(faq.category).label}</em>
+                <em>{formatViews(faq.viewCount)}</em>
               </Link>
             ))}
             {noticeMatches.map((notice) => (
               <a key={notice.id} href={notice.url} target="_blank" rel="noreferrer">
                 <span>공지</span>
                 <strong>{notice.title}</strong>
-                <em>{formatDate(notice.postedAt)}</em>
+                <em>{formatViews(getViewCount(notice.id))}</em>
               </a>
             ))}
           </div>
