@@ -16,7 +16,9 @@ import styles from '../App.module.css'
 const STORAGE_KEY = 'hannon-chat-session'
 const LOCAL = 'local'
 
-type StoredSession = { conversationId: string; category: CategoryId }
+type ChatMode = 'ai' | 'human'
+
+type StoredSession = { conversationId: string; category: CategoryId; mode: ChatMode }
 
 const loadSession = (): StoredSession | null => {
   try {
@@ -42,6 +44,7 @@ export function ChatWidget() {
   const { categories, checklists, faqEntries, keywordPresets, notices } = useAcademicData()
   const [open, setOpen] = useState(false)
   const [category, setCategory] = useState<CategoryId | null>(null)
+  const [mode, setMode] = useState<ChatMode | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [customText, setCustomText] = useState('')
@@ -56,6 +59,7 @@ export function ChatWidget() {
     const session = loadSession()
     if (session) {
       setCategory(session.category)
+      setMode(session.mode)
       setConversationId(session.conversationId)
     }
   }, [])
@@ -74,20 +78,38 @@ export function ChatWidget() {
     if (conversationId && conversationId !== LOCAL) void markConversationReadByStudent(conversationId)
   }, [messages, open, conversationId])
 
-  const selectCategory = async (id: CategoryId) => {
+  const pushLocal = (from: ChatMessage['from'], text: string) => {
+    setMessages((current) => [...current, { id: uid(), from, text, createdAt: Date.now() }])
+  }
+
+  // 카테고리 선택 → 다음 단계(상담 방식 선택)로 이동. 아직 대화는 만들지 않는다.
+  const selectCategory = (id: CategoryId) => {
     if (starting) return
-    setStarting(true)
     setCategory(id)
-    const convId = await createConversation(id)
+    setMode(null)
+    setConversationId(null)
+    setMessages([])
+  }
+
+  // 상담 방식(AI / 상담사) 선택 → 대화 생성 후 채팅 시작.
+  const selectMode = async (nextMode: ChatMode) => {
+    if (!category || starting) return
+    setStarting(true)
+    setMode(nextMode)
+    const convId = await createConversation(category)
     const nextId = convId ?? LOCAL
     setConversationId(nextId)
     setMessages([])
-    if (convId) saveSession({ conversationId: convId, category: id })
+    if (convId) {
+      saveSession({ conversationId: convId, category, mode: nextMode })
+      if (nextMode === 'human') {
+        await sendStudentMessage(convId, 'bot', '상담사에게 연결했어요. 확인 후 순차적으로 답변드립니다.')
+        await escalateToHuman(convId)
+      }
+    } else if (nextMode === 'human') {
+      pushLocal('bot', '데모 모드에서는 상담사 연결이 지원되지 않습니다. AI 상담을 이용해 주세요.')
+    }
     setStarting(false)
-  }
-
-  const pushLocal = (from: ChatMessage['from'], text: string) => {
-    setMessages((current) => [...current, { id: uid(), from, text, createdAt: Date.now() }])
   }
 
   // 현재 카테고리 지식 기반을 프록시로 보낼 형태로 만든다.
@@ -115,11 +137,9 @@ export function ChatWidget() {
     { role: 'user' as const, content: latest },
   ]
 
-  const send = async (text: string) => {
-    const trimmed = text.trim()
-    if (!trimmed || !category || !conversationId || aiThinking) return
-    setCustomText('')
-
+  // AI 상담: 학생 메시지 → AI 답변.
+  const sendToAi = async (trimmed: string) => {
+    if (!category || !conversationId) return
     const categoryLabel = (categories.find((item) => item.id === category) ?? getCategory(category, categories)).label
     const payload: AiChatPayload = {
       categoryLabel,
@@ -134,7 +154,7 @@ export function ChatWidget() {
         const result = await askAi(payload)
         pushLocal('ai', result.answer)
       } catch {
-        pushLocal('ai', '지금은 답변을 불러오지 못했어요. 잠시 후 다시 시도하거나 상담원 연결을 이용해 주세요.')
+        pushLocal('ai', '지금은 답변을 불러오지 못했어요. 잠시 후 다시 시도하거나 상담사 연결을 이용해 주세요.')
       } finally {
         setAiThinking(false)
       }
@@ -142,33 +162,60 @@ export function ChatWidget() {
     }
 
     await sendStudentMessage(conversationId, 'student', trimmed)
-    // 문의 로그(빈도 대시보드용)
     void createChatInquiry(category, trimmed, undefined, conversationId)
 
     setAiThinking(true)
     try {
       const result = await askAi(payload)
       await sendStudentMessage(conversationId, 'ai', result.answer)
-      if (!result.confident) await escalateToHuman(conversationId)
+      if (!result.confident) {
+        await sendStudentMessage(
+          conversationId,
+          'bot',
+          '더 정확한 안내가 필요하시면 아래 "상담사 연결"을 눌러 주세요.',
+        )
+      }
     } catch {
       await sendStudentMessage(
         conversationId,
         'ai',
-        '지금은 답변을 불러오지 못했어요. 담당자에게 연결해 드릴게요.',
+        '지금은 답변을 불러오지 못했어요. "상담사 연결"을 이용해 주세요.',
       )
-      await escalateToHuman(conversationId)
     } finally {
       setAiThinking(false)
     }
   }
 
-  const requestHuman = async () => {
-    if (!conversationId) return
+  // 상담사 상담: 학생 메시지만 전송. 답변은 관리자가 직접 작성한다.
+  const sendToHuman = async (trimmed: string) => {
+    if (!category || !conversationId) return
     if (localMode) {
-      pushLocal('bot', '데모 모드에서는 상담원 연결이 지원되지 않습니다.')
+      pushLocal('student', trimmed)
+      pushLocal('bot', '데모 모드에서는 상담사 답변이 지원되지 않습니다.')
       return
     }
-    await sendStudentMessage(conversationId, 'bot', '담당자에게 연결했어요. 확인 후 답변드립니다.')
+    await sendStudentMessage(conversationId, 'student', trimmed)
+    void createChatInquiry(category, trimmed, undefined, conversationId)
+  }
+
+  const send = async (text: string) => {
+    const trimmed = text.trim()
+    if (!trimmed || !category || !conversationId || !mode || aiThinking) return
+    setCustomText('')
+    if (mode === 'ai') await sendToAi(trimmed)
+    else await sendToHuman(trimmed)
+  }
+
+  // AI 상담 중 상담사로 전환.
+  const switchToHuman = async () => {
+    if (!conversationId) return
+    setMode('human')
+    if (category) saveSession({ conversationId, category, mode: 'human' })
+    if (localMode) {
+      pushLocal('bot', '데모 모드에서는 상담사 연결이 지원되지 않습니다.')
+      return
+    }
+    await sendStudentMessage(conversationId, 'bot', '상담사에게 연결했어요. 확인 후 순차적으로 답변드립니다.')
     await escalateToHuman(conversationId)
   }
 
@@ -176,8 +223,17 @@ export function ChatWidget() {
     saveSession(null)
     setConversationId(null)
     setCategory(null)
+    setMode(null)
     setMessages([])
     setCustomText('')
+  }
+
+  const backToModeSelect = () => {
+    setMode(null)
+    setConversationId(null)
+    setMessages([])
+    setCustomText('')
+    saveSession(null)
   }
 
   const onCustomSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -189,29 +245,52 @@ export function ChatWidget() {
     ? keywordPresets.filter((question) => question.category === category)
     : []
   const activeCategory = categories.find((item) => item.id === category)
-  const started = Boolean(conversationId)
+  const started = Boolean(conversationId && mode)
+
+  const headerLabel = () => {
+    if (!activeCategory) return '채팅 문의'
+    if (mode === 'ai') return `${activeCategory.label} · AI 상담`
+    if (mode === 'human') return `${activeCategory.label} · 상담사 상담`
+    return `${activeCategory.label} 상담`
+  }
 
   return (
     <div className={styles.chatWidget}>
       {open && (
         <div className={styles.chatPanel} role="dialog" aria-label="채팅 문의">
           <div className={styles.chatHeader}>
-            <strong>{activeCategory ? `${activeCategory.label} 상담` : '채팅 문의'}</strong>
+            <strong>{headerLabel()}</strong>
             <button type="button" onClick={() => setOpen(false)} aria-label="닫기">
               ×
             </button>
           </div>
           <div className={styles.chatBody} ref={bodyRef}>
-            {!started && (
+            {!category && (
               <div className={styles.chatBubbleBot}>
                 <p>안녕하세요. 어떤 항목이 궁금하신가요?</p>
               </div>
             )}
-            {started && messages.length === 0 && (
+            {category && !started && (
               <div className={styles.chatBubbleBot}>
                 <p>
-                  {activeCategory?.label} 관련 궁금한 점을 선택하거나 직접 입력해 주세요. 담당자가
-                  확인 후 답변드립니다.
+                  {activeCategory?.label} 상담을 어떤 방식으로 진행할까요? AI 상담은 즉시 답변을
+                  받을 수 있고, 상담사 상담은 담당자가 직접 확인 후 답변드립니다.
+                </p>
+              </div>
+            )}
+            {started && messages.length === 0 && mode === 'ai' && (
+              <div className={styles.chatBubbleBot}>
+                <p>
+                  {activeCategory?.label} 관련 궁금한 점을 선택하거나 직접 입력해 주세요. AI가 바로
+                  답변해 드립니다.
+                </p>
+              </div>
+            )}
+            {started && messages.length === 0 && mode === 'human' && (
+              <div className={styles.chatBubbleBot}>
+                <p>
+                  {activeCategory?.label} 관련 문의 내용을 남겨 주세요. 상담사가 확인 후 순차적으로
+                  답변드립니다.
                 </p>
               </div>
             )}
@@ -220,6 +299,11 @@ export function ChatWidget() {
                 key={message.id}
                 className={message.from === 'student' ? styles.chatBubbleUser : styles.chatBubbleBot}
               >
+                {(message.from === 'ai' || message.from === 'admin') && (
+                  <span className={styles.chatBubbleTag}>
+                    {message.from === 'ai' ? 'AI' : '상담사'}
+                  </span>
+                )}
                 <p>{message.text}</p>
               </div>
             ))}
@@ -230,35 +314,66 @@ export function ChatWidget() {
             )}
           </div>
           <div className={styles.chatOptions}>
-            {!started && (
+            {!category && (
               <div className={styles.chatQuickGrid}>
                 {categories.map((item) => (
                   <button
                     type="button"
                     key={item.id}
                     disabled={starting}
-                    onClick={() => void selectCategory(item.id)}
+                    onClick={() => selectCategory(item.id)}
                   >
                     {item.label}
                   </button>
                 ))}
               </div>
             )}
+            {category && !started && (
+              <div className={styles.chatModeGrid}>
+                <button
+                  type="button"
+                  className={styles.chatModeCard}
+                  disabled={starting}
+                  onClick={() => void selectMode('ai')}
+                >
+                  <strong>🤖 AI 채팅</strong>
+                  <span>학사 안내를 바탕으로 즉시 답변</span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.chatModeCard}
+                  disabled={starting}
+                  onClick={() => void selectMode('human')}
+                >
+                  <strong>💬 상담사 채팅</strong>
+                  <span>담당자가 직접 확인 후 답변</span>
+                </button>
+                <button type="button" className={styles.chatTextButton} onClick={reset}>
+                  ← 다른 항목 선택
+                </button>
+              </div>
+            )}
             {started && (
               <>
                 <div className={styles.chatQuickGrid}>
-                  {categoryQuestions.map((question) => (
-                    <button
-                      type="button"
-                      key={question.id}
-                      disabled={aiThinking}
-                      onClick={() => void send(question.text)}
-                    >
-                      {question.text}
+                  {mode === 'ai' &&
+                    categoryQuestions.map((question) => (
+                      <button
+                        type="button"
+                        key={question.id}
+                        disabled={aiThinking}
+                        onClick={() => void send(question.text)}
+                      >
+                        {question.text}
+                      </button>
+                    ))}
+                  {mode === 'ai' && (
+                    <button type="button" onClick={() => void switchToHuman()}>
+                      상담사 연결
                     </button>
-                  ))}
-                  <button type="button" onClick={() => void requestHuman()}>
-                    상담원 연결
+                  )}
+                  <button type="button" onClick={backToModeSelect}>
+                    상담 방식 변경
                   </button>
                   <button type="button" onClick={reset}>
                     다른 항목 선택
@@ -268,7 +383,9 @@ export function ChatWidget() {
                   <input
                     value={customText}
                     onChange={(event) => setCustomText(event.target.value)}
-                    placeholder="궁금한 내용을 입력해 주세요"
+                    placeholder={
+                      mode === 'ai' ? '궁금한 내용을 입력해 주세요' : '상담사에게 남길 내용을 입력해 주세요'
+                    }
                     aria-label="문의 내용"
                   />
                   <button type="submit" disabled={aiThinking}>
