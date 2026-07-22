@@ -60,7 +60,9 @@ service cloud.firestore {
 
       allow create: if signedIn()
         && request.resource.data.studentId == request.auth.uid
-        && request.resource.data.status == 'open';
+        && request.resource.data.status == 'open'
+        && request.resource.data.studentName is string
+        && request.resource.data.studentNumber is string;
       allow read: if isAdmin() || ownsConversation();
       allow update: if isAdmin() || ownsConversation();
       allow delete: if isAdmin();

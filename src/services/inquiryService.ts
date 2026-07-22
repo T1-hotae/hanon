@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   doc,
   getDocs,
@@ -7,6 +6,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   Timestamp,
   updateDoc,
   type DocumentData,
@@ -151,42 +151,27 @@ export const getInitialInquiries = async (): Promise<Inquiry[]> =>
     }
   }, false)
 
-export const createLocalInquiry = (
-  source: 'chat' | 'phone',
-  category: CategoryId,
-  questionText: string,
-): Inquiry => {
-  const now = Date.now()
-  return {
-    id: `local-${now}-${Math.random().toString(36).slice(2, 8)}`,
-    source,
-    category,
-    questionText,
-    status: 'pending',
-    createdAt: now,
-  }
-}
-
+// 대화(conversationId)당 문의를 정확히 하나만 남긴다 — 문서 id를 conversationId로 고정해
+// 여러 메시지가 오가도 같은 문서에 덮어써지도록 한다(대화의 첫 메시지가 대표 키워드가 됨).
 export const createChatInquiry = async (
   category: CategoryId,
   keyword: string,
-  detail?: string,
-  conversationId?: string,
-): Promise<Inquiry> => {
-  const local = createLocalInquiry('chat', category, keyword)
-  if (!firestore) return local
-
-  const docRef = await addDoc(collection(firestore, 'inquiries'), {
-    source: 'chat',
-    categoryId: category,
-    keyword,
-    detail: detail ?? '',
-    status: 'pending',
-    conversationId: conversationId ?? null,
-    createdAt: serverTimestamp(),
-  })
-
-  return { ...local, id: docRef.id }
+  conversationId: string,
+): Promise<void> => {
+  if (!firestore) return
+  try {
+    await setDoc(doc(firestore, 'inquiries', conversationId), {
+      source: 'chat',
+      categoryId: category,
+      keyword,
+      detail: '',
+      status: 'pending',
+      conversationId,
+      createdAt: serverTimestamp(),
+    })
+  } catch (error) {
+    console.warn('Failed to record chat inquiry.', error)
+  }
 }
 
 // FAQ 조회수 증가. 세션 내 중복 카운트는 호출부(localStorage)에서 방지한다.

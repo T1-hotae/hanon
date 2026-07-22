@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
-  createChatInquiry,
   getCategories,
   getChecklists,
   getFaqEntries,
@@ -69,10 +68,6 @@ export const AcademicDataProvider = ({ children }: { children: ReactNode }) => {
       notices,
       loading,
       usingMockData: !isFirestoreConfigured(),
-      addChatInquiry: async (category, questionText, detail) => {
-        const inquiry = await createChatInquiry(category, questionText, detail)
-        setInquiries((current) => [inquiry, ...current])
-      },
     }),
     [categories, checklists, faqEntries, inquiries, keywordPresets, loading, notices],
   )

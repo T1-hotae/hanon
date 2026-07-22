@@ -3,6 +3,7 @@ import {
   addDoc,
   collection,
   doc,
+  increment,
   onSnapshot,
   orderBy,
   query,
@@ -52,13 +53,19 @@ export const ensureAnonymousAuth = async (): Promise<string | null> => {
 }
 
 // 새 대화 생성. Firestore 미설정 시 로컬 임시 id를 반환한다.
-export const createConversation = async (category: CategoryId): Promise<string | null> => {
+export const createConversation = async (
+  category: CategoryId,
+  studentName: string,
+  studentNumber: string,
+): Promise<string | null> => {
   if (!firestore) return null
   const studentId = await ensureAnonymousAuth()
   if (!studentId) return null
 
   const ref = await addDoc(collection(firestore, 'conversations'), {
     studentId,
+    studentName,
+    studentNumber,
     category,
     status: 'open',
     lastMessage: '',
@@ -67,6 +74,7 @@ export const createConversation = async (category: CategoryId): Promise<string |
     unreadForAdmin: false,
     unreadForStudent: false,
     needsHuman: false,
+    studentMessageCount: 0,
   })
   return ref.id
 }
@@ -91,7 +99,8 @@ export const sendStudentMessage = async (
     lastMessage: text,
     lastMessageAt: serverTimestamp(),
     // 학생이 보낸 메시지는 관리자에게 미확인으로 표시(봇 자동응답은 제외).
-    ...(from === 'student' ? { unreadForAdmin: true } : {}),
+    // 실제 학생 발화 수를 세어, 자동 안내만 있는 빈 대화를 관리자 목록에서 숨기는 데 쓴다.
+    ...(from === 'student' ? { unreadForAdmin: true, studentMessageCount: increment(1) } : {}),
   })
 }
 

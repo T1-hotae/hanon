@@ -1150,6 +1150,46 @@ mark {
   text-align: center !important;
 }
 
+.chatIdentityForm {
+  display: grid;
+  gap: 10px;
+}
+
+.chatIdentityForm input {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font: inherit;
+  padding: 12px 16px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.chatIdentityForm input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(27, 76, 128, 0.12);
+  outline: none;
+}
+
+.chatIdentityForm button {
+  background: var(--color-primary);
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 12px 20px;
+  transition: background-color var(--transition);
+}
+
+.chatIdentityForm button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.chatIdentityForm button:disabled {
+  opacity: 0.6;
+}
+
 .chatCustomForm {
   display: grid;
   gap: 8px;

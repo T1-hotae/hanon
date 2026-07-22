@@ -1,7 +1,6 @@
 import { createContext } from 'react'
 import type {
   Category,
-  CategoryId,
   Checklist,
   FaqEntry,
   Inquiry,
@@ -18,7 +17,6 @@ export type AcademicDataValue = {
   notices: Notice[]
   loading: boolean
   usingMockData: boolean
-  addChatInquiry: (category: CategoryId, questionText: string, detail?: string) => Promise<void>
 }
 
 export const AcademicDataContext = createContext<AcademicDataValue | undefined>(

@@ -18,7 +18,12 @@ const LOCAL = 'local'
 
 type ChatMode = 'ai' | 'human'
 
-type StoredSession = { conversationId: string; category: CategoryId; mode: ChatMode }
+type StoredSession = {
+  conversationId: string
+  category: CategoryId
+  mode: ChatMode
+  inquiryLogged?: boolean
+}
 
 const loadSession = (): StoredSession | null => {
   try {
@@ -52,18 +57,27 @@ export function ChatWidget() {
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<ChatMode | null>(null)
   const [category, setCategory] = useState<CategoryId | null>(null)
+  const [studentName, setStudentName] = useState('')
+  const [studentNumber, setStudentNumber] = useState('')
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [customText, setCustomText] = useState('')
   const [starting, setStarting] = useState(false)
   const [aiThinking, setAiThinking] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
+  const inquiryLoggedRef = useRef(false)
 
   const localMode = conversationId === LOCAL
   const started = Boolean(conversationId && category && mode)
 
-  // 현재 단계: mode → category → chat
-  const step: 'mode' | 'category' | 'chat' = !mode ? 'mode' : !started ? 'category' : 'chat'
+  // 현재 단계: mode → category → identity(학번/이름) → chat
+  const step: 'mode' | 'category' | 'identity' | 'chat' = !mode
+    ? 'mode'
+    : !category
+      ? 'category'
+      : !started
+        ? 'identity'
+        : 'chat'
 
   // 저장된 세션 복구
   useEffect(() => {
@@ -72,6 +86,7 @@ export function ChatWidget() {
       setMode(session.mode)
       setCategory(session.category)
       setConversationId(session.conversationId)
+      inquiryLoggedRef.current = Boolean(session.inquiryLogged)
     }
   }, [])
 
@@ -102,17 +117,26 @@ export function ChatWidget() {
     setMessages([])
   }
 
-  // ② 항목 선택 → 대화 생성 후 채팅 시작
-  const selectCategory = async (id: CategoryId) => {
+  // ② 항목 선택 → 학번/이름 입력 단계로 이동
+  const selectCategory = (id: CategoryId) => {
     if (!mode || starting) return
-    setStarting(true)
     setCategory(id)
-    const convId = await createConversation(id)
+  }
+
+  // ③ 학번/이름 제출 → 대화 생성 후 채팅 시작
+  const startConversation = async () => {
+    if (!mode || !category || starting) return
+    const trimmedName = studentName.trim()
+    const trimmedNumber = studentNumber.trim()
+    if (!trimmedName || !trimmedNumber) return
+    setStarting(true)
+    const convId = await createConversation(category, trimmedName, trimmedNumber)
     const nextId = convId ?? LOCAL
     setConversationId(nextId)
     setMessages([])
+    inquiryLoggedRef.current = false
     if (convId) {
-      saveSession({ conversationId: convId, category: id, mode })
+      saveSession({ conversationId: convId, category, mode })
       if (mode === 'human') {
         await sendStudentMessage(convId, 'bot', '상담사에게 연결했어요. 확인 후 순차적으로 답변드립니다.')
         await escalateToHuman(convId)
@@ -121,6 +145,14 @@ export function ChatWidget() {
       pushLocal('bot', '데모 모드에서는 상담사 연결이 지원되지 않습니다. AI 상담을 이용해 주세요.')
     }
     setStarting(false)
+  }
+
+  // 대화(conversationId)당 문의 집계를 한 건만 남긴다 — 첫 메시지만 대표 키워드로 기록.
+  const logInquiryOnce = (text: string) => {
+    if (!category || !conversationId || conversationId === LOCAL || inquiryLoggedRef.current) return
+    inquiryLoggedRef.current = true
+    saveSession({ conversationId, category, mode: mode as ChatMode, inquiryLogged: true })
+    void createChatInquiry(category, text, conversationId)
   }
 
   // 현재 카테고리 지식 기반을 프록시로 보낼 형태로 만든다.
@@ -173,7 +205,7 @@ export function ChatWidget() {
     }
 
     await sendStudentMessage(conversationId, 'student', trimmed)
-    void createChatInquiry(category, trimmed, undefined, conversationId)
+    logInquiryOnce(trimmed)
 
     setAiThinking(true)
     try {
@@ -206,7 +238,7 @@ export function ChatWidget() {
       return
     }
     await sendStudentMessage(conversationId, 'student', trimmed)
-    void createChatInquiry(category, trimmed, undefined, conversationId)
+    logInquiryOnce(trimmed)
   }
 
   const send = async (text: string) => {
@@ -230,14 +262,17 @@ export function ChatWidget() {
     await escalateToHuman(conversationId)
   }
 
-  // 헤더 뒤로가기: 채팅 → 항목선택 → 방식선택
+  // 헤더 뒤로가기: 채팅 → 학번/이름 입력 → 항목선택 → 방식선택
   const goBack = () => {
     setCustomText('')
     if (step === 'chat') {
       setConversationId(null)
-      setCategory(null)
       setMessages([])
       saveSession(null)
+    } else if (step === 'identity') {
+      setCategory(null)
+      setStudentName('')
+      setStudentNumber('')
     } else if (step === 'category') {
       setMode(null)
     }
@@ -258,6 +293,11 @@ export function ChatWidget() {
     const modeLabel = mode === 'ai' ? 'AI 상담' : '관리자 문의'
     if (step === 'category') return modeLabel
     return activeCategory ? `${activeCategory.label} · ${modeLabel}` : modeLabel
+  }
+
+  const onIdentitySubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    void startConversation()
   }
 
   return (
@@ -334,13 +374,39 @@ export function ChatWidget() {
                       key={item.id}
                       className={styles.chatCategoryCard}
                       disabled={starting}
-                      onClick={() => void selectCategory(item.id)}
+                      onClick={() => selectCategory(item.id)}
                     >
                       <strong>{item.label}</strong>
                       {item.description && <span>{item.description}</span>}
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {step === 'identity' && (
+              <div className={styles.chatIntro}>
+                <div className={styles.chatBubbleBot}>
+                  <p>상담 시작 전 학번과 이름을 알려주세요.</p>
+                </div>
+                <form className={styles.chatIdentityForm} onSubmit={onIdentitySubmit}>
+                  <input
+                    value={studentNumber}
+                    onChange={(event) => setStudentNumber(event.target.value)}
+                    placeholder="학번"
+                    aria-label="학번"
+                    autoFocus
+                  />
+                  <input
+                    value={studentName}
+                    onChange={(event) => setStudentName(event.target.value)}
+                    placeholder="이름"
+                    aria-label="이름"
+                  />
+                  <button type="submit" disabled={starting || !studentNumber.trim() || !studentName.trim()}>
+                    {starting ? '시작하는 중…' : '상담 시작'}
+                  </button>
+                </form>
               </div>
             )}
 

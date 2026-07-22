@@ -62,6 +62,8 @@ export type ChatMessage = {
 export type Conversation = {
   id: string
   studentId: string
+  studentName: string
+  studentNumber: string
   category: CategoryId
   status: 'open' | 'answered'
   lastMessage: string
@@ -70,6 +72,7 @@ export type Conversation = {
   unreadForAdmin: boolean
   unreadForStudent: boolean
   needsHuman: boolean
+  studentMessageCount: number
 }
 
 export type ChecklistItem = {

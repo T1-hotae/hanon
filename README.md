@@ -48,6 +48,20 @@ npm run build
 npm run seed
 ```
 
+## Firestore 초기화(DB 리셋)
+
+테스트 데이터를 지우고 처음부터 다시 시작하고 싶을 때 사용합니다. **되돌릴 수 없으니 운영 중인 프로젝트에서는 주의하세요.**
+
+```bash
+npm run reset            # 무엇이 지워질지만 보여줌(dry-run, 실제 삭제 없음)
+npm run reset -- --confirm   # 실제 삭제 실행
+npm run seed              # 기본 카테고리/예시질문/체크리스트/공지/FAQ 다시 채우기
+```
+
+`categories`, `keywordPresets`, `faqEntries`, `checklists`, `notices`, `inquiries`, `conversations`(하위 `messages` 포함) 컬렉션을 통째로 삭제합니다. Firebase Authentication에 만들어 둔 관리자 로그인 계정이나 Storage에 이미 올라간 파일은 지우지 않습니다(따로 정리해야 함).
+
+컬렉션 1~2개만 지우고 싶다면 스크립트 대신 [Firebase 콘솔](https://console.firebase.google.com) → Firestore Database에서 해당 컬렉션을 직접 삭제해도 됩니다(콘솔에서 컬렉션 삭제 시에도 하위 문서가 함께 삭제됩니다).
+
 ## Firestore 보안 규칙
 
 `firestore.rules`를 Firebase 콘솔 또는 Firebase CLI로 배포하세요.
