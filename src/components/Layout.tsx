@@ -5,15 +5,15 @@ import { useAcademicData } from '../context/useAcademicData'
 import styles from '../App.module.css'
 
 export function Layout({ children }: { children: ReactNode }) {
-  const { usingMockData } = useAcademicData()
+  const { firebaseUnavailable } = useAcademicData()
 
   return (
     <>
       <Header />
       <main className={styles.shell}>
-        {usingMockData && (
+        {firebaseUnavailable && (
           <div className={styles.mockNotice}>
-            Firebase 환경변수가 없거나 Firestore 조회에 실패해 기본 데이터로 실행 중입니다.
+            Firebase 환경변수가 설정되지 않아 학사 데이터를 불러올 수 없습니다.
           </div>
         )}
         {children}

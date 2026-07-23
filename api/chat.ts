@@ -8,6 +8,7 @@ const MODEL = process.env.OPENAI_MODEL ?? 'gpt-4o-mini'
 type KbFaq = { id: string; question: string; answer: string }
 type KbNotice = { id: string; title: string; body?: string }
 type KbChecklistItem = { label: string; content: string }
+type KbContact = { team: string; topic: string; phone: string }
 type ChatTurn = { role: 'user' | 'assistant'; content: string }
 
 type RequestBody = {
@@ -16,6 +17,7 @@ type RequestBody = {
     faqs?: KbFaq[]
     notices?: KbNotice[]
     checklist?: KbChecklistItem[]
+    contacts?: KbContact[]
     phone?: string
     hours?: string
   }
@@ -32,6 +34,9 @@ const buildSystemPrompt = (categoryLabel: string, kb: RequestBody['kb']): string
   const checklist = (kb?.checklist ?? [])
     .map((c) => `- ${c.label}: ${c.content}`)
     .join('\n')
+  const contacts = (kb?.contacts ?? [])
+    .map((c) => `- ${c.team} · ${c.topic}: ${c.phone}`)
+    .join('\n')
 
   return [
     '당신은 대학교 "학사 한눈에" 서비스의 학사 안내 상담 도우미입니다.',
@@ -43,13 +48,14 @@ const buildSystemPrompt = (categoryLabel: string, kb: RequestBody['kb']): string
     '3) 자료로 답하기 어렵거나 개인 학적·성적 등 민감/개별 확인이 필요하면 confident=false로 두고, "담당자에게 연결해 드릴게요"라는 취지로 answer를 작성하세요.',
     '4) 답변 근거가 된 공지가 있으면 그 대괄호 id를 relatedNoticeIds에 담으세요(없으면 빈 배열).',
     '5) 학사 안내와 무관한 요청은 정중히 거절하고 confident=false로 두세요.',
+    '6) 전화 문의가 더 정확한 질문이면 [담당 부서 연락처]의 부서명과 번호를 그대로 안내하세요. 목록에 없는 번호는 지어내지 마세요.',
     '',
     '<자료>',
-    kb?.phone ? `문의 전화: ${kb.phone}` : '',
     kb?.hours ? `운영 시간: ${kb.hours}` : '',
     faqs ? `\n[자주 묻는 질문]\n${faqs}` : '',
     notices ? `\n[공지]\n${notices}` : '',
     checklist ? `\n[신청 전 체크리스트]\n${checklist}` : '',
+    contacts ? `\n[담당 부서 연락처]\n${contacts}` : (kb?.phone ? `\n문의 전화: ${kb.phone}` : ''),
     '</자료>',
   ]
     .filter(Boolean)

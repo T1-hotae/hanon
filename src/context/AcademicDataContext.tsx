@@ -2,10 +2,9 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   getCategories,
   getChecklists,
+  getContacts,
   getFaqEntries,
-  getInitialInquiries,
   getInitialNotices,
-  getKeywordPresets,
   isFirestoreConfigured,
 } from '../services/inquiryService'
 import { ensureAnonymousAuth } from '../services/chatService'
@@ -13,18 +12,16 @@ import { AcademicDataContext, type AcademicDataValue } from './academicDataConte
 import type {
   Category,
   Checklist,
+  Contact,
   FaqEntry,
-  Inquiry,
   Notice,
-  PresetQuestion,
 } from '../types/academic'
 
 export const AcademicDataProvider = ({ children }: { children: ReactNode }) => {
   const [categories, setCategories] = useState<Category[]>([])
-  const [keywordPresets, setKeywordPresets] = useState<PresetQuestion[]>([])
   const [faqEntries, setFaqEntries] = useState<FaqEntry[]>([])
   const [checklists, setChecklists] = useState<Checklist[]>([])
-  const [inquiries, setInquiries] = useState<Inquiry[]>([])
+  const [contacts, setContacts] = useState<Contact[]>([])
   const [notices, setNotices] = useState<Notice[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -34,25 +31,22 @@ export const AcademicDataProvider = ({ children }: { children: ReactNode }) => {
 
     Promise.all([
       getCategories(),
-      getKeywordPresets(),
       getFaqEntries(),
       getChecklists(),
-      getInitialInquiries(),
+      getContacts(),
       getInitialNotices(),
     ])
       .then(([
         initialCategories,
-        initialPresets,
         initialFaqEntries,
         initialChecklists,
-        initialInquiries,
+        initialContacts,
         initialNotices,
       ]) => {
         setCategories(initialCategories)
-        setKeywordPresets(initialPresets)
         setFaqEntries(initialFaqEntries)
         setChecklists(initialChecklists)
-        setInquiries(initialInquiries)
+        setContacts(initialContacts)
         setNotices(initialNotices)
       })
       .finally(() => setLoading(false))
@@ -61,15 +55,14 @@ export const AcademicDataProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo<AcademicDataValue>(
     () => ({
       categories,
-      keywordPresets,
       faqEntries,
       checklists,
-      inquiries,
+      contacts,
       notices,
       loading,
-      usingMockData: !isFirestoreConfigured(),
+      firebaseUnavailable: !isFirestoreConfigured(),
     }),
-    [categories, checklists, faqEntries, inquiries, keywordPresets, loading, notices],
+    [categories, checklists, contacts, faqEntries, loading, notices],
   )
 
   return (

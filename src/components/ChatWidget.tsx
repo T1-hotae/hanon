@@ -53,12 +53,13 @@ const senderLabel = (from: ChatMessage['from']): string | null => {
 }
 
 export function ChatWidget() {
-  const { categories, checklists, faqEntries, keywordPresets, notices } = useAcademicData()
+  const { categories, checklists, contacts, faqEntries, notices } = useAcademicData()
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<ChatMode | null>(null)
   const [category, setCategory] = useState<CategoryId | null>(null)
   const [studentName, setStudentName] = useState('')
   const [studentNumber, setStudentNumber] = useState('')
+  const [studentDepartment, setStudentDepartment] = useState('')
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [customText, setCustomText] = useState('')
@@ -69,15 +70,19 @@ export function ChatWidget() {
 
   const localMode = conversationId === LOCAL
   const started = Boolean(conversationId && category && mode)
+  // 관리자 문의만 학번/학과/이름 입력을 받는다. AI 상담은 항목 선택 후 바로 시작.
+  const needsIdentity = mode === 'human'
 
-  // 현재 단계: mode → category → identity(학번/이름) → chat
+  // 현재 단계: mode → category → (관리자 문의: identity) → chat
   const step: 'mode' | 'category' | 'identity' | 'chat' = !mode
     ? 'mode'
     : !category
       ? 'category'
-      : !started
-        ? 'identity'
-        : 'chat'
+      : started
+        ? 'chat'
+        : needsIdentity
+          ? 'identity'
+          : 'category'
 
   // 저장된 세션 복구
   useEffect(() => {
@@ -115,28 +120,34 @@ export function ChatWidget() {
     setCategory(null)
     setConversationId(null)
     setMessages([])
+    setStudentName('')
+    setStudentNumber('')
+    setStudentDepartment('')
   }
 
-  // ② 항목 선택 → 학번/이름 입력 단계로 이동
+  // ② 항목 선택 → AI 상담은 바로 시작, 관리자 문의는 학번/학과/이름 입력 단계로 이동
   const selectCategory = (id: CategoryId) => {
     if (!mode || starting) return
     setCategory(id)
+    if (mode === 'ai') void startConversation(id)
   }
 
-  // ③ 학번/이름 제출 → 대화 생성 후 채팅 시작
-  const startConversation = async () => {
-    if (!mode || !category || starting) return
+  // ③ 대화 생성 후 채팅 시작. 관리자 문의는 학번/학과/이름이 모두 필요하다.
+  const startConversation = async (categoryOverride?: CategoryId) => {
+    const activeCat = categoryOverride ?? category
+    if (!mode || !activeCat || starting) return
     const trimmedName = studentName.trim()
     const trimmedNumber = studentNumber.trim()
-    if (!trimmedName || !trimmedNumber) return
+    const trimmedDepartment = studentDepartment.trim()
+    if (mode === 'human' && (!trimmedName || !trimmedNumber || !trimmedDepartment)) return
     setStarting(true)
-    const convId = await createConversation(category, trimmedName, trimmedNumber)
+    const convId = await createConversation(activeCat, trimmedName, trimmedNumber, trimmedDepartment)
     const nextId = convId ?? LOCAL
     setConversationId(nextId)
     setMessages([])
     inquiryLoggedRef.current = false
     if (convId) {
-      saveSession({ conversationId: convId, category, mode })
+      saveSession({ conversationId: convId, category: activeCat, mode })
       if (mode === 'human') {
         await sendStudentMessage(convId, 'bot', '상담사에게 연결했어요. 확인 후 순차적으로 답변드립니다.')
         await escalateToHuman(convId)
@@ -167,6 +178,9 @@ export function ChatWidget() {
         .filter((item) => item.category === cat)
         .map((item) => ({ id: item.id, title: item.title })),
       checklist: checklist ? checklist.items.map((item) => ({ label: item.label, content: item.content })) : [],
+      contacts: contacts
+        .filter((item) => item.categories.includes(cat))
+        .map((item) => ({ team: item.team, topic: item.topic, phone: item.phone })),
       phone: info?.phone,
       hours: info?.hours,
     }
@@ -249,19 +263,6 @@ export function ChatWidget() {
     else await sendToHuman(trimmed)
   }
 
-  // AI 상담 중 상담사로 전환.
-  const switchToHuman = async () => {
-    if (!conversationId || !category) return
-    setMode('human')
-    saveSession({ conversationId, category, mode: 'human' })
-    if (localMode) {
-      pushLocal('bot', '데모 모드에서는 상담사 연결이 지원되지 않습니다.')
-      return
-    }
-    await sendStudentMessage(conversationId, 'bot', '상담사에게 연결했어요. 확인 후 순차적으로 답변드립니다.')
-    await escalateToHuman(conversationId)
-  }
-
   // 헤더 뒤로가기: 채팅 → 학번/이름 입력 → 항목선택 → 방식선택
   const goBack = () => {
     setCustomText('')
@@ -273,6 +274,7 @@ export function ChatWidget() {
       setCategory(null)
       setStudentName('')
       setStudentNumber('')
+      setStudentDepartment('')
     } else if (step === 'category') {
       setMode(null)
     }
@@ -283,8 +285,12 @@ export function ChatWidget() {
     void send(customText)
   }
 
+  // AI 상담 추천 질문은 해당 카테고리의 FAQ 질문을 사용한다(교직원이 등록한 질문 그대로).
   const categoryQuestions = category
-    ? keywordPresets.filter((question) => question.category === category)
+    ? faqEntries
+        .filter((faq) => faq.category === category)
+        .slice(0, 6)
+        .map((faq) => ({ id: faq.id, text: faq.question }))
     : []
   const activeCategory = categories.find((item) => item.id === category)
 
@@ -387,7 +393,7 @@ export function ChatWidget() {
             {step === 'identity' && (
               <div className={styles.chatIntro}>
                 <div className={styles.chatBubbleBot}>
-                  <p>상담 시작 전 학번과 이름을 알려주세요.</p>
+                  <p>상담 시작 전 학번, 학과, 이름을 알려주세요.</p>
                 </div>
                 <form className={styles.chatIdentityForm} onSubmit={onIdentitySubmit}>
                   <input
@@ -398,12 +404,26 @@ export function ChatWidget() {
                     autoFocus
                   />
                   <input
+                    value={studentDepartment}
+                    onChange={(event) => setStudentDepartment(event.target.value)}
+                    placeholder="학과"
+                    aria-label="학과"
+                  />
+                  <input
                     value={studentName}
                     onChange={(event) => setStudentName(event.target.value)}
                     placeholder="이름"
                     aria-label="이름"
                   />
-                  <button type="submit" disabled={starting || !studentNumber.trim() || !studentName.trim()}>
+                  <button
+                    type="submit"
+                    disabled={
+                      starting ||
+                      !studentNumber.trim() ||
+                      !studentDepartment.trim() ||
+                      !studentName.trim()
+                    }
+                  >
                     {starting ? '시작하는 중…' : '상담 시작'}
                   </button>
                 </form>
@@ -468,13 +488,6 @@ export function ChatWidget() {
                       {question.text}
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    className={styles.chatQuickAccent}
-                    onClick={() => void switchToHuman()}
-                  >
-                    상담사 연결하기
-                  </button>
                 </div>
               )}
               <form className={styles.chatCustomForm} onSubmit={onCustomSubmit}>

@@ -27,6 +27,7 @@ export type AiChatPayload = {
     faqs: { id: string; question: string; answer: string }[]
     notices: { id: string; title: string; body?: string }[]
     checklist: { label: string; content: string }[]
+    contacts?: { team: string; topic: string; phone: string }[]
     phone?: string
     hours?: string
   }
@@ -57,6 +58,7 @@ export const createConversation = async (
   category: CategoryId,
   studentName: string,
   studentNumber: string,
+  studentDepartment: string,
 ): Promise<string | null> => {
   if (!firestore) return null
   const studentId = await ensureAnonymousAuth()
@@ -66,6 +68,7 @@ export const createConversation = async (
     studentId,
     studentName,
     studentNumber,
+    studentDepartment,
     category,
     status: 'open',
     lastMessage: '',

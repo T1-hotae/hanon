@@ -6,6 +6,7 @@ import { NoticeList } from '../components/NoticeList'
 import { PhoneIcon } from '../components/PhoneIcon'
 import { primaryCategories } from '../constants'
 import { useAcademicData } from '../context/useAcademicData'
+import { createPhoneInquiry } from '../services/inquiryService'
 import { getCategory, type CategoryId } from '../types/academic'
 import { sortFaqs, sortNoticesByViews } from '../utils/format'
 import styles from '../App.module.css'
@@ -13,7 +14,7 @@ import styles from '../App.module.css'
 export function CategoryPage() {
   const params = useParams()
   const [searchParams] = useSearchParams()
-  const { categories, checklists, faqEntries, notices } = useAcademicData()
+  const { categories, checklists, contacts, faqEntries, notices } = useAcademicData()
   const categoryId = params.id as CategoryId
   const category = getCategory(categoryId, categories)
   const tabs = primaryCategories(categories)
@@ -25,6 +26,17 @@ export function CategoryPage() {
   const faqs = sortFaqs(faqEntries.filter((faq) => faq.category === categoryId))
   const checklist = checklists.find((item) => item.category === categoryId)
   const categoryNotices = sortNoticesByViews(notices.filter((notice) => notice.category === categoryId))
+
+  // 이 카테고리의 담당 부서 연락처. 모달에는 대표(priority 1)만 노출하고, 없으면 카테고리 연락처를 사용한다.
+  const categoryContacts = contacts
+    .filter((contact) => contact.categories.includes(categoryId))
+    .sort((a, b) => a.order - b.order)
+  const featuredContacts = categoryContacts.filter((contact) => contact.priority === 1)
+  const modalContacts = featuredContacts.length ? featuredContacts : categoryContacts
+
+  const recordPhoneInquiry = (phone: string, topic?: string) => {
+    void createPhoneInquiry(categoryId, `${category.label} 전화 문의${topic ? ` · ${topic}` : ''}`, phone)
+  }
 
   return (
     <Layout>
@@ -107,10 +119,43 @@ export function CategoryPage() {
         <div className={styles.modalBackdrop} role="presentation" onClick={() => setModalOpen(false)}>
           <div className={styles.modal} role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
             <h2>{category.label} 문의 전화</h2>
-            <p className={styles.phoneNumber}>{category.phone}</p>
-            <p>{category.hours}</p>
+            {modalContacts.length > 0 ? (
+              <>
+                <ul className={styles.contactList}>
+                  {modalContacts.map((contact) => (
+                    <li key={contact.id} className={styles.contactRow}>
+                      <div className={styles.contactRowInfo}>
+                        <strong>{contact.team}</strong>
+                        <span>{contact.topic}</span>
+                      </div>
+                      <a
+                        className={styles.contactCall}
+                        href={`tel:${contact.phone}`}
+                        onClick={() => recordPhoneInquiry(contact.phone, `${contact.team} ${contact.topic}`)}
+                      >
+                        <PhoneIcon size={15} />
+                        <span>{contact.phone}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+                {category.hours && <p className={styles.contactHours}>{category.hours}</p>}
+                <Link className={styles.contactDirectoryLink} to={`/directory?category=${categoryId}`}>
+                  전체 부서 연락처 보기 →
+                </Link>
+              </>
+            ) : category.phone ? (
+              <>
+                <p className={styles.phoneNumber}>{category.phone}</p>
+                {category.hours && <p>{category.hours}</p>}
+                <div className={styles.modalActions}>
+                  <a href={`tel:${category.phone}`} onClick={() => recordPhoneInquiry(category.phone)}>전화 걸기</a>
+                </div>
+              </>
+            ) : (
+              <p>등록된 담당 부서 연락처가 없습니다.</p>
+            )}
             <div className={styles.modalActions}>
-              <a href={`tel:${category.phone}`}>전화 걸기</a>
               <button type="button" onClick={() => setModalOpen(false)}>
                 닫기
               </button>

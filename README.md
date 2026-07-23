@@ -1,6 +1,6 @@
 # 학사 한눈에
 
-React 18 + Vite + TypeScript 기반 학생용 학사 안내 웹입니다. 학생 웹은 Firestore의 `categories`, `keywordPresets`, `faqEntries`, `checklists`, `notices`를 읽고, 채팅 문의는 `inquiries`에 `pending` 상태로 생성합니다. Firebase가 설정되지 않았거나 조회에 실패하면 기본 mock 데이터로 동작합니다.
+React 18 + Vite + TypeScript 기반 학생용 학사 안내 웹입니다. 학생 웹은 Firestore의 `categories`, `faqEntries`, `checklists`, `notices`를 읽고, 채팅 문의는 `inquiries`에 `pending` 상태로 생성합니다. 모든 학사 데이터는 Firestore 전용이며(mock 폴백 없음), Firebase가 설정되지 않았거나 데이터가 없으면 빈 상태로 표시됩니다. 홈 '지금 많이 묻는 질문' 섹션은 `faqEntries` 중 `showOnHome`이 켜진 항목을 카테고리 필터·페이지네이션으로 보여줍니다.
 
 관리자 데스크탑 앱은 별도 프로젝트로 `C:\Users\USER\Desktop\han-non-e-admin`에 생성되어 있습니다.
 

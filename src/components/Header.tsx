@@ -18,6 +18,10 @@ export function Header() {
       <Link to="/" className={styles.logo}>
         문무니
       </Link>
+      <nav className={styles.headerNav} aria-label="주요 메뉴">
+        <Link to="/notices">원문 공지</Link>
+        <Link to="/directory">전화번호부</Link>
+      </nav>
       <form className={styles.searchForm} onSubmit={onSubmit}>
         <input
           aria-label="검색어"

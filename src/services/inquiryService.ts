@@ -1,4 +1,5 @@
 import {
+  addDoc,
   collection,
   doc,
   getDocs,
@@ -12,20 +13,13 @@ import {
   type DocumentData,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore'
-import { mockChecklists } from '../mock/checklists'
-import { mockFaqEntries } from '../mock/faqEntries'
-import { mockInquiries } from '../mock/inquiries'
-import { mockNotices } from '../mock/notices'
-import { presetQuestions } from '../mock/presetQuestions'
 import {
-  CATEGORIES,
   type Category,
   type CategoryId,
   type Checklist,
+  type Contact,
   type FaqEntry,
-  type Inquiry,
   type Notice,
-  type PresetQuestion,
 } from '../types/academic'
 import { firestore, isFirebaseConfigured } from './firebase'
 
@@ -55,7 +49,7 @@ const readCollection = async <T>(
     const items = snapshots.docs.map(mapper)
     return items.length ? items : fallback
   } catch (error) {
-    console.warn(`Failed to load ${name} from Firestore. Falling back to mock data.`, error)
+    console.warn(`Failed to load ${name} from Firestore. Returning empty list.`, error)
     return fallback
   }
 }
@@ -63,7 +57,7 @@ const readCollection = async <T>(
 export const isFirestoreConfigured = isFirebaseConfigured
 
 export const getCategories = () =>
-  readCollection<Category>('categories', CATEGORIES, (snapshot) => {
+  readCollection<Category>('categories', [], (snapshot) => {
     const data = snapshot.data()
     const id = String(data.id ?? snapshot.id)
     return {
@@ -76,19 +70,8 @@ export const getCategories = () =>
     }
   })
 
-export const getKeywordPresets = () =>
-  readCollection<PresetQuestion>('keywordPresets', presetQuestions, (snapshot) => {
-    const data = snapshot.data()
-    return {
-      id: String(data.id ?? snapshot.id),
-      category: readCategoryId(data),
-      text: String(data.label ?? data.text ?? ''),
-      order: Number(data.order ?? 0),
-    }
-  })
-
 export const getFaqEntries = () =>
-  readCollection<FaqEntry>('faqEntries', mockFaqEntries, (snapshot) => {
+  readCollection<FaqEntry>('faqEntries', [], (snapshot) => {
     const data = snapshot.data()
     return {
       id: String(data.id ?? snapshot.id),
@@ -99,13 +82,14 @@ export const getFaqEntries = () =>
       relatedNoticeIds: Array.isArray(data.relatedNoticeIds) ? data.relatedNoticeIds.map(String) : [],
       order: Number(data.order ?? 0),
       pinned: Boolean(data.pinned),
+      showOnHome: Boolean(data.showOnHome),
       viewCount: Number(data.viewCount ?? 0),
       updatedAt: toMillis(data.updatedAt),
     }
   })
 
 export const getChecklists = () =>
-  readCollection<Checklist>('checklists', mockChecklists, (snapshot) => {
+  readCollection<Checklist>('checklists', [], (snapshot) => {
     const data = snapshot.data()
     const rawItems = Array.isArray(data.items) ? data.items : []
     return {
@@ -123,8 +107,24 @@ export const getChecklists = () =>
     }
   })
 
+export const getContacts = () =>
+  readCollection<Contact>('contacts', [], (snapshot) => {
+    const data = snapshot.data()
+    return {
+      id: String(data.id ?? snapshot.id),
+      team: String(data.team ?? ''),
+      topic: String(data.topic ?? ''),
+      ext: String(data.ext ?? ''),
+      phone: String(data.phone ?? ''),
+      group: String(data.group ?? '기타'),
+      categories: Array.isArray(data.categories) ? data.categories.map(String) : [],
+      priority: Number(data.priority ?? 2),
+      order: Number(data.order ?? 999),
+    }
+  })
+
 export const getInitialNotices = async (): Promise<Notice[]> =>
-  readCollection<Notice>('notices', mockNotices, (snapshot) => {
+  readCollection<Notice>('notices', [], (snapshot) => {
     const data = snapshot.data()
     return {
       id: String(data.id ?? snapshot.id),
@@ -134,22 +134,6 @@ export const getInitialNotices = async (): Promise<Notice[]> =>
       postedAt: toMillis(data.postedAt ?? data.createdAt),
       order: Number(data.order ?? 999),
       viewCount: Number(data.viewCount ?? 0),
-    }
-  }, false)
-
-export const getInitialInquiries = async (): Promise<Inquiry[]> =>
-  readCollection<Inquiry>('inquiries', mockInquiries, (snapshot) => {
-    const data = snapshot.data()
-    return {
-      id: String(data.id ?? snapshot.id),
-      source: data.source === 'phone' ? 'phone' : 'chat',
-      category: readCategoryId(data),
-      questionText: String(data.keyword ?? data.questionText ?? data.detail ?? ''),
-      status: data.status === 'answered' ? 'answered' : 'pending',
-      answerText: typeof data.answerText === 'string' ? data.answerText : undefined,
-      relatedNoticeIds: Array.isArray(data.relatedNoticeIds) ? data.relatedNoticeIds.map(String) : undefined,
-      createdAt: toMillis(data.createdAt),
-      answeredAt: data.answeredAt ? toMillis(data.answeredAt) : undefined,
     }
   }, false)
 
@@ -177,6 +161,26 @@ export const createChatInquiry = async (
 }
 
 // FAQ 조회수 증가. 세션 내 중복 카운트는 호출부(localStorage)에서 방지한다.
+export const createPhoneInquiry = async (
+  category: CategoryId,
+  keyword: string,
+  phone: string,
+): Promise<void> => {
+  if (!firestore) return
+  try {
+    await addDoc(collection(firestore, 'inquiries'), {
+      source: 'phone',
+      categoryId: category,
+      keyword,
+      detail: phone,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+    })
+  } catch (error) {
+    console.warn('Failed to record phone inquiry.', error)
+  }
+}
+
 export const incrementFaqView = async (faqId: string): Promise<void> => {
   if (!firestore) return
   try {

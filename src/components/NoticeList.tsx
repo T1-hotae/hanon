@@ -8,6 +8,10 @@ export function NoticeList({ notices }: { notices: Notice[] }) {
     if (markNoticeViewedOnce(noticeId)) void incrementNoticeView(noticeId)
   }
 
+  if (notices.length === 0) {
+    return <p className={styles.emptyState}>등록된 원문 공지가 없습니다.</p>
+  }
+
   return (
     <ul className={styles.noticeList}>
       {notices.map((notice) => (

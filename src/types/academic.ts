@@ -24,13 +24,6 @@ export type Notice = {
   viewCount: number
 }
 
-export type PresetQuestion = {
-  id: string
-  category: CategoryId
-  text: string
-  order?: number
-}
-
 export type Category = {
   id: CategoryId
   label: string
@@ -49,6 +42,8 @@ export type FaqEntry = {
   relatedNoticeIds: string[]
   order: number
   pinned: boolean
+  // 홈 '지금 많이 묻는 질문' 섹션 노출 여부. 교직원이 admin에서 지정한다.
+  showOnHome: boolean
   viewCount: number
   updatedAt: number
 }
@@ -91,43 +86,32 @@ export type Checklist = {
   items: ChecklistItem[]
 }
 
-export const CATEGORIES: Category[] = [
-  {
-    id: 'transfer',
-    label: '전과',
-    description: '전과 자격, 신청 기간, 제출 서류, 학점 인정 안내',
-    phone: '02-320-1081',
-    hours: '평일 09:00-17:00, 점심시간 12:00-13:00 제외',
-    order: 1,
-  },
-  {
-    id: 'course',
-    label: '수강신청',
-    description: '예비수강, 본수강 정정 기간, 재수강 기준 안내',
-    phone: '02-320-1082',
-    hours: '평일 09:00-17:00, 수강신청 기간 연장 운영',
-    order: 2,
-  },
-  {
-    id: 'leave',
-    label: '휴학',
-    description: '일반휴학, 군휴학, 복학, 신청 서류 안내',
-    phone: '02-320-1083',
-    hours: '평일 09:00-17:00, 점심시간 12:00-13:00 제외',
-    order: 3,
-  },
-  {
-    id: 'etc',
-    label: '기타',
-    description: '입학, 성적, 졸업, 등록 등 기타 학사 공지 확인',
-    phone: '02-320-1000',
-    hours: '평일 09:00-17:00, 해당 부서 연결',
-    order: 4,
-  },
-]
+// 학내 부서 연락처(구내전화 안내 기반). 개인 실명은 담지 않고 부서·업무·내선만 노출한다.
+export type Contact = {
+  id: string
+  team: string // 부서/팀명
+  topic: string // 담당 업무
+  ext: string // 내선(원본 표기)
+  phone: string // 걸 수 있는 전체 번호(031-…)
+  group: string // 디렉터리 분류(학사, 장학·복지, 진로·취업 등)
+  categories: CategoryId[] // 연결된 학사 카테고리
+  priority: number // 1이면 카테고리 전화 모달에 노출, 그 외는 디렉터리 전용
+  order: number
+}
 
-export const getCategory = (id: CategoryId, categories: Category[] = CATEGORIES) =>
+// 카테고리(전과/수강신청/휴학 등)는 전적으로 Firestore `categories`에서 온다.
+// 하드코딩 폴백은 두지 않는다 — 데이터가 없으면 빈 상태로 표시한다.
+const EMPTY_CATEGORY: Category = {
+  id: 'etc',
+  label: '기타',
+  description: '',
+  phone: '',
+  hours: '',
+  order: 999,
+}
+
+export const getCategory = (id: CategoryId, categories: Category[]): Category =>
   categories.find((category) => category.id === id) ??
   categories.find((category) => category.id === 'etc') ??
   categories[0] ??
-  CATEGORIES[3]
+  EMPTY_CATEGORY

@@ -35,6 +35,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /contacts/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /notices/{noticeId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -63,7 +68,10 @@ service cloud.firestore {
         && request.resource.data.status == 'open'
         && request.resource.data.studentName is string
         && request.resource.data.studentNumber is string;
-      allow read: if isAdmin() || ownsConversation();
+      // 상담사(관리자)는 상담사 연결을 요청한 대화(needsHuman == true)만 읽을 수 있다.
+      // AI 상담(needsHuman == false)은 DB 수준에서 상담사에게 노출되지 않는다.
+      // (규칙은 필터가 아니므로, 관리자 앱 쿼리도 where('needsHuman','==',true)로 맞춰야 한다.)
+      allow read: if (isAdmin() && resource.data.needsHuman == true) || ownsConversation();
       allow update: if isAdmin() || ownsConversation();
       allow delete: if isAdmin();
 
@@ -73,7 +81,9 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/conversations/$(conversationId)).data.studentId == request.auth.uid;
         }
 
-        allow read: if isAdmin() || ownsParent();
+        // 상담사는 AI 자동응답(from == 'ai') 메시지를 읽을 수 없다. 학생은 본인 대화의 모든 메시지를 읽는다.
+        // (관리자 앱 쿼리는 where('from','!=','ai')로 맞춰야 이 규칙과 충돌하지 않는다.)
+        allow read: if (isAdmin() && resource.data.from != 'ai') || ownsParent();
         // 학생은 student/bot/ai 메시지만, 관리자는 admin 메시지만 생성.
         allow create: if
           (isAdmin() && request.resource.data.from == 'admin') ||

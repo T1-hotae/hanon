@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "seed": "node scripts/seed.mjs",
+    "seed:web": "node scripts/seed-web.mjs",
     "reset": "node scripts/reset.mjs"
   },
   "dependencies": {
