@@ -11,7 +11,9 @@
       "Skill(claude-api)",
       "Skill(claude-api:*)",
       "Bash(npm run *)",
-      "Bash(node --check scripts/seed.mjs)"
+      "Bash(node --check scripts/seed.mjs)",
+      "Bash(npx oxlint *)",
+      "Bash(npx eslint *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\USER\\Desktop\\han-non-e-admin\\src",

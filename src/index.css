@@ -1,18 +1,18 @@
 :root {
-  --color-bg: #f3f5f9;
+  --color-bg: #faf5ef;
   --color-surface: #ffffff;
-  --color-text: #1f2a37;
-  --color-text-muted: #64748b;
-  --color-border: #e2e8f0;
-  --color-primary: #1b4c80;
-  --color-primary-hover: #123a63;
-  --color-accent: #ea7a3a;
-  --color-accent-soft: #fdf1e6;
+  --color-text: #2b241e;
+  --color-text-muted: #857567;
+  --color-border: #ece2d6;
+  --color-primary: #b0491f;
+  --color-primary-hover: #8f3a17;
+  --color-accent: #e08a3c;
+  --color-accent-soft: #fbeede;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 18px;
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 12px 28px -14px rgba(15, 23, 42, 0.25);
+  --shadow-sm: 0 1px 2px rgba(87, 62, 38, 0.06);
+  --shadow-md: 0 12px 28px -14px rgba(87, 62, 38, 0.28);
   --transition: 160ms ease;
 
   color: var(--color-text);
@@ -44,7 +44,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(27, 76, 128, 0.18);
+  background: rgba(176, 73, 31, 0.18);
 }
 
 :focus-visible {

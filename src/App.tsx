@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AcademicDataProvider } from './context/AcademicDataContext'
 import { useAcademicData } from './context/useAcademicData'
 import { CategoryPage } from './pages/CategoryPage'
+import { ChatPage } from './pages/ChatPage'
 import { DirectoryPage } from './pages/DirectoryPage'
 import { HomePage } from './pages/HomePage'
 import { NoticesPage } from './pages/NoticesPage'
@@ -16,6 +17,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/chat" element={<ChatPage />} />
       <Route path="/notices" element={<NoticesPage />} />
       <Route path="/directory" element={<DirectoryPage />} />
       <Route path="/category/:id" element={<CategoryPage />} />

@@ -77,6 +77,7 @@ export function PopularQuestions() {
             >
               <span className={styles.questionBadge}>{categoryLabel(faq.category)}</span>
               <strong>{faq.question}</strong>
+              <span className={styles.questionArrow} aria-hidden="true">›</span>
             </Link>
           ))}
         </div>

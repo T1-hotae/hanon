@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { FaqItem } from '../components/FaqItem'
 import { Layout } from '../components/Layout'
@@ -10,6 +10,10 @@ import { getCategory, type CategoryId } from '../types/academic'
 import { sortFaqs, sortNoticesByViews } from '../utils/format'
 import styles from '../App.module.css'
 
+// 두 패널(FAQ·원문 공지)의 페이지당 항목 수
+const FAQ_PAGE_SIZE = 5
+const NOTICE_PAGE_SIZE = 7
+
 export function CategoryPage() {
   const params = useParams()
   const [searchParams] = useSearchParams()
@@ -18,12 +22,45 @@ export function CategoryPage() {
   const category = getCategory(categoryId, categories)
   const [modalOpen, setModalOpen] = useState(false)
   const [openFaqId, setOpenFaqId] = useState(searchParams.get('open') ?? '')
+  const [faqPage, setFaqPage] = useState(0)
+  const [noticePage, setNoticePage] = useState(0)
+
+  const faqs = useMemo(
+    () => sortFaqs(faqEntries.filter((faq) => faq.category === categoryId)),
+    [faqEntries, categoryId],
+  )
+  const categoryNotices = useMemo(
+    () => sortNoticesByViews(notices.filter((notice) => notice.category === categoryId)),
+    [notices, categoryId],
+  )
+
+  // 탭으로 카테고리를 바꾸면 각 패널 페이지를 처음으로 되돌린다.
+  useEffect(() => {
+    setFaqPage(0)
+    setNoticePage(0)
+  }, [categoryId])
+
+  // 검색 결과 등에서 특정 FAQ로 진입하면 해당 FAQ가 있는 페이지로 이동한다.
+  useEffect(() => {
+    if (!openFaqId) return
+    const index = faqs.findIndex((faq) => faq.id === openFaqId)
+    if (index >= 0) setFaqPage(Math.floor(index / FAQ_PAGE_SIZE))
+  }, [openFaqId, faqs])
 
   if (!categories.some((item) => item.id === categoryId)) return <Navigate to="/" replace />
 
-  const faqs = sortFaqs(faqEntries.filter((faq) => faq.category === categoryId))
   const checklist = checklists.find((item) => item.category === categoryId)
-  const categoryNotices = sortNoticesByViews(notices.filter((notice) => notice.category === categoryId))
+
+  const faqTotalPages = Math.max(1, Math.ceil(faqs.length / FAQ_PAGE_SIZE))
+  const currentFaqPage = Math.min(faqPage, faqTotalPages - 1)
+  const pagedFaqs = faqs.slice(currentFaqPage * FAQ_PAGE_SIZE, (currentFaqPage + 1) * FAQ_PAGE_SIZE)
+
+  const noticeTotalPages = Math.max(1, Math.ceil(categoryNotices.length / NOTICE_PAGE_SIZE))
+  const currentNoticePage = Math.min(noticePage, noticeTotalPages - 1)
+  const pagedNotices = categoryNotices.slice(
+    currentNoticePage * NOTICE_PAGE_SIZE,
+    (currentNoticePage + 1) * NOTICE_PAGE_SIZE,
+  )
 
   // 이 카테고리의 담당 부서 연락처. 모달에는 대표(priority 1)만 노출하고, 없으면 카테고리 연락처를 사용한다.
   const categoryContacts = contacts
@@ -58,20 +95,70 @@ export function CategoryPage() {
       <section className={styles.twoColumn}>
         <div className={styles.section}>
           <h2>가장 많이 묻는 질문</h2>
-          <div className={styles.accordion}>
-            {faqs.map((faq) => (
-              <FaqItem
-                key={faq.id}
-                faq={faq}
-                open={openFaqId === faq.id}
-                onToggle={() => setOpenFaqId(openFaqId === faq.id ? '' : faq.id)}
-              />
-            ))}
+          <div className={styles.pagedBody}>
+            {pagedFaqs.length > 0 ? (
+              <div className={styles.accordion}>
+                {pagedFaqs.map((faq) => (
+                  <FaqItem
+                    key={faq.id}
+                    faq={faq}
+                    open={openFaqId === faq.id}
+                    onToggle={() => setOpenFaqId(openFaqId === faq.id ? '' : faq.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className={styles.emptyState}>등록된 질문이 없습니다.</p>
+            )}
           </div>
+          {faqTotalPages > 1 && (
+            <div className={styles.pager}>
+              <button
+                type="button"
+                onClick={() => setFaqPage((page) => Math.max(0, page - 1))}
+                disabled={currentFaqPage === 0}
+              >
+                이전
+              </button>
+              <span>
+                {currentFaqPage + 1} / {faqTotalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setFaqPage((page) => Math.min(faqTotalPages - 1, page + 1))}
+                disabled={currentFaqPage >= faqTotalPages - 1}
+              >
+                다음
+              </button>
+            </div>
+          )}
         </div>
         <aside className={styles.section}>
           <h2>자주 찾는 원문 공지</h2>
-          <NoticeList notices={categoryNotices} />
+          <div className={styles.pagedBody}>
+            <NoticeList notices={pagedNotices} />
+          </div>
+          {noticeTotalPages > 1 && (
+            <div className={styles.pager}>
+              <button
+                type="button"
+                onClick={() => setNoticePage((page) => Math.max(0, page - 1))}
+                disabled={currentNoticePage === 0}
+              >
+                이전
+              </button>
+              <span>
+                {currentNoticePage + 1} / {noticeTotalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setNoticePage((page) => Math.min(noticeTotalPages - 1, page + 1))}
+                disabled={currentNoticePage >= noticeTotalPages - 1}
+              >
+                다음
+              </button>
+            </div>
+          )}
         </aside>
       </section>
 

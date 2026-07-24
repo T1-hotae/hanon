@@ -21,7 +21,7 @@ export function NoticeList({ notices }: { notices: Notice[] }) {
           </a>
           <div className={styles.noticeMeta}>
             <span>{formatViews(notice.viewCount)}</span>
-            <time>{formatDate(notice.postedAt)}</time>
+            <time dateTime={new Date(notice.postedAt).toISOString()}>{formatDate(notice.postedAt)}</time>
           </div>
         </li>
       ))}

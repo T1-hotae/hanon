@@ -146,12 +146,16 @@ export const markConversationReadByStudent = async (conversationId: string): Pro
 }
 
 // AI가 답하기 어려운 문의를 관리자에게 넘긴다.
-export const escalateToHuman = async (conversationId: string): Promise<void> => {
+// AI 대화에서 승격할 때는 학생 식별정보(학번·학과·이름)를 함께 병합해 관리자에게 전달한다.
+export const escalateToHuman = async (
+  conversationId: string,
+  identity?: { studentName: string; studentNumber: string; studentDepartment: string },
+): Promise<void> => {
   if (!firestore) return
   try {
     await setDoc(
       doc(firestore, 'conversations', conversationId),
-      { needsHuman: true, unreadForAdmin: true },
+      { needsHuman: true, unreadForAdmin: true, ...(identity ?? {}) },
       { merge: true },
     )
   } catch (error) {
