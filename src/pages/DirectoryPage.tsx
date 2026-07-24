@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Layout } from '../components/Layout'
 import { PhoneIcon } from '../components/PhoneIcon'
+import { primaryCategories } from '../constants'
 import { useAcademicData } from '../context/useAcademicData'
 import { createPhoneInquiry } from '../services/inquiryService'
 import type { CategoryId } from '../types/academic'
@@ -16,6 +17,7 @@ export function DirectoryPage() {
     categories.some((category) => category.id === initialCategory) ? initialCategory : 'all',
   )
   const [query, setQuery] = useState('')
+  const tabs = primaryCategories(categories)
 
   const filtered = useMemo(() => {
     const keyword = query.trim().toLowerCase()
@@ -33,7 +35,6 @@ export function DirectoryPage() {
       .sort((a, b) => a.order - b.order)
   }, [contacts, categoryFilter, query])
 
-  // 그룹별로 묶어서 보여준다(그룹 등장 순서 유지).
   const grouped = useMemo(() => {
     const map = new Map<string, typeof filtered>()
     for (const contact of filtered) {
@@ -44,8 +45,13 @@ export function DirectoryPage() {
     return [...map.entries()]
   }, [filtered])
 
-  const categoryLabel = (id: CategoryId) =>
-    categories.find((category) => category.id === id)?.label ?? id
+  const changeFilter = (next: CategoryId | 'all') => {
+    setCategoryFilter(next)
+  }
+
+  const changeQuery = (next: string) => {
+    setQuery(next)
+  }
 
   const record = (phone: string, team: string, topic: string) => {
     void createPhoneInquiry('etc', `${team} ${topic} 전화 문의`, phone)
@@ -65,16 +71,16 @@ export function DirectoryPage() {
           <button
             type="button"
             className={categoryFilter === 'all' ? styles.activeTab : undefined}
-            onClick={() => setCategoryFilter('all')}
+            onClick={() => changeFilter('all')}
           >
             전체
           </button>
-          {categories.map((category) => (
+          {tabs.map((category) => (
             <button
               type="button"
               key={category.id}
               className={categoryFilter === category.id ? styles.activeTab : undefined}
-              onClick={() => setCategoryFilter(category.id)}
+              onClick={() => changeFilter(category.id)}
             >
               {category.label}
             </button>
@@ -84,7 +90,7 @@ export function DirectoryPage() {
         <input
           className={styles.directorySearch}
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => changeQuery(event.target.value)}
           placeholder="부서·업무·번호 검색 (예: 학적, 장학, 3542)"
           aria-label="부서 검색"
         />
@@ -92,33 +98,33 @@ export function DirectoryPage() {
         {grouped.length === 0 ? (
           <p className={styles.emptyState}>검색 결과가 없습니다.</p>
         ) : (
-          grouped.map(([group, groupContacts]) => (
-            <div key={group} className={styles.directoryGroup}>
-              <h2 className={styles.directoryGroupTitle}>{group}</h2>
-              <ul className={styles.contactList}>
-                {groupContacts.map((contact) => (
-                  <li key={contact.id} className={styles.contactRow}>
-                    <div className={styles.contactRowInfo}>
-                      <strong>{contact.team}</strong>
-                      <span>
-                        {contact.topic}
-                        {contact.categories.length > 0 &&
-                          ` · ${contact.categories.map(categoryLabel).join('·')}`}
-                      </span>
-                    </div>
+          <div className={styles.directorySections}>
+            {grouped.map(([group, groupContacts]) => (
+              <section key={group} className={styles.directorySection}>
+                <div className={styles.directorySectionHeader}>
+                  <h2>{group}</h2>
+                  <span>{groupContacts.length}개</span>
+                </div>
+                <div className={styles.rankList}>
+                  {groupContacts.map((contact) => (
                     <a
-                      className={styles.contactCall}
+                      key={contact.id}
+                      className={`${styles.questionRow} ${styles.directoryRow}`}
                       href={`tel:${contact.phone}`}
                       onClick={() => record(contact.phone, contact.team, contact.topic)}
                     >
-                      <PhoneIcon size={15} />
-                      <span>{contact.phone}</span>
+                      <span className={styles.questionBadge}>{contact.team}</span>
+                      <strong>{contact.topic}</strong>
+                      <span className={styles.directoryCallBadge}>
+                        <PhoneIcon size={14} />
+                        {contact.phone}
+                      </span>
                     </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         )}
       </section>
     </Layout>

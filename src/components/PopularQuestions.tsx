@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { FaqItem } from './FaqItem'
 import { primaryCategories } from '../constants'
 import { useAcademicData } from '../context/useAcademicData'
 import type { CategoryId } from '../types/academic'
@@ -14,6 +14,7 @@ export function PopularQuestions() {
   const { categories, faqEntries } = useAcademicData()
   const [filter, setFilter] = useState<CategoryId | 'all'>('all')
   const [page, setPage] = useState(1)
+  const [openId, setOpenId] = useState('')
 
   const tabs = primaryCategories(categories)
 
@@ -34,10 +35,8 @@ export function PopularQuestions() {
   const changeFilter = (next: CategoryId | 'all') => {
     setFilter(next)
     setPage(1)
+    setOpenId('')
   }
-
-  const categoryLabel = (id: CategoryId) =>
-    categories.find((category) => category.id === id)?.label ?? id
 
   return (
     <section className={styles.section}>
@@ -68,17 +67,14 @@ export function PopularQuestions() {
       {pageItems.length === 0 ? (
         <p className={styles.emptyState}>아직 등록된 질문이 없습니다.</p>
       ) : (
-        <div className={styles.rankList}>
+        <div className={styles.accordion}>
           {pageItems.map((faq) => (
-            <Link
+            <FaqItem
               key={faq.id}
-              to={`/category/${faq.category}?open=${encodeURIComponent(faq.id)}`}
-              className={styles.questionRow}
-            >
-              <span className={styles.questionBadge}>{categoryLabel(faq.category)}</span>
-              <strong>{faq.question}</strong>
-              <span className={styles.questionArrow} aria-hidden="true">›</span>
-            </Link>
+              faq={faq}
+              open={openId === faq.id}
+              onToggle={() => setOpenId(openId === faq.id ? '' : faq.id)}
+            />
           ))}
         </div>
       )}

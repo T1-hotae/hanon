@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { ChatInfoPanel } from '../components/ChatInfoPanel'
 import { Layout } from '../components/Layout'
 import { useAcademicData } from '../context/useAcademicData'
 import {
@@ -315,7 +316,8 @@ export function ChatPage() {
     : []
 
   return (
-    <Layout>
+    <Layout fullHeight>
+      <div className={styles.chatLayout}>
       <div className={styles.chatPage}>
         <div className={styles.chatPageHeader}>
           <div className={styles.chatPageHeaderInfo}>
@@ -468,6 +470,9 @@ export function ChatPage() {
             </button>
           </form>
         </div>
+      </div>
+
+        {category && <ChatInfoPanel categoryId={category} />}
       </div>
 
       {escalateOpen && (

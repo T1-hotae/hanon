@@ -36,6 +36,19 @@ body {
   min-width: 320px;
 }
 
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+/* 채팅 화면에서는 뷰포트 높이를 확정해 페이지 자체 스크롤을 막는다.
+   (min-height만으로는 flex 자식이 내용 높이로 커져 페이지가 스크롤된다) */
+#root:has([data-full-height]) {
+  height: 100dvh;
+  overflow: hidden;
+}
+
 button,
 input,
 select,

@@ -1,17 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { AnimatedMascot } from '../components/AnimatedMascot'
 import { Layout } from '../components/Layout'
 import { NoticeList } from '../components/NoticeList'
 import { PopularQuestions } from '../components/PopularQuestions'
 import { TopTabs } from '../components/TopTabs'
 import { useAcademicData } from '../context/useAcademicData'
 import { sortNoticesByViews } from '../utils/format'
-import munmuniMascot from '../assets/munmuni-mascot.png'
 import styles from '../App.module.css'
 
 function Hero() {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
+  const [animationEnabled, setAnimationEnabled] = useState(true)
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -28,9 +29,17 @@ function Hero() {
       </h1>
       <p className={styles.heroSubtitle}>궁금한 학사정보, 문무니가 빠르고 정확하게 알려드릴게요!</p>
 
-      <div className={styles.heroMascotWrap}>
-        <img className={styles.heroMascot} src={munmuniMascot} alt="문무니 마스코트" />
+      <div className={`${styles.heroMascotWrap} ${animationEnabled ? '' : styles.heroAnimationPaused}`}>
+        <AnimatedMascot animationEnabled={animationEnabled} />
         <span className={styles.heroBubble}>무엇이 궁금하신가요?</span>
+        <button
+          className={styles.heroAnimationToggle}
+          type="button"
+          aria-pressed={!animationEnabled}
+          onClick={() => setAnimationEnabled((enabled) => !enabled)}
+        >
+          {animationEnabled ? '움직임 끄기' : '움직임 켜기'}
+        </button>
       </div>
 
       <form className={styles.heroSearch} onSubmit={onSubmit}>
