@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { CategoryChips } from '../components/CategoryChips'
 import { Layout } from '../components/Layout'
 import { NoticeList } from '../components/NoticeList'
 import { PopularQuestions } from '../components/PopularQuestions'
@@ -13,12 +12,6 @@ export function HomePage() {
 
   return (
     <Layout>
-      <section className={styles.introBand}>
-        <p className={styles.eyebrow}>자주 찾는 항목</p>
-        <h1>문무니에서 학사 질문과 원문 공지를 빠르게 확인하세요.</h1>
-        <CategoryChips limitToPrimary />
-      </section>
-
       <PopularQuestions />
 
       <section className={styles.section}>

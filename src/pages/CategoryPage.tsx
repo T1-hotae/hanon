@@ -4,7 +4,6 @@ import { FaqItem } from '../components/FaqItem'
 import { Layout } from '../components/Layout'
 import { NoticeList } from '../components/NoticeList'
 import { PhoneIcon } from '../components/PhoneIcon'
-import { primaryCategories } from '../constants'
 import { useAcademicData } from '../context/useAcademicData'
 import { createPhoneInquiry } from '../services/inquiryService'
 import { getCategory, type CategoryId } from '../types/academic'
@@ -17,7 +16,6 @@ export function CategoryPage() {
   const { categories, checklists, contacts, faqEntries, notices } = useAcademicData()
   const categoryId = params.id as CategoryId
   const category = getCategory(categoryId, categories)
-  const tabs = primaryCategories(categories)
   const [modalOpen, setModalOpen] = useState(false)
   const [openFaqId, setOpenFaqId] = useState(searchParams.get('open') ?? '')
 
@@ -40,45 +38,22 @@ export function CategoryPage() {
 
   return (
     <Layout>
-      <nav className={styles.topTabs} aria-label="주요 학사 항목">
-        {tabs.map((tab) => (
-          <Link
-            key={tab.id}
-            to={`/category/${tab.id}`}
-            aria-current={tab.id === categoryId ? 'page' : undefined}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </nav>
-      <section className={styles.categoryTopGrid}>
-        <div className={styles.categoryTopLeft}>
-          <section className={styles.categoryHero}>
-            <div>
-              <p className={styles.eyebrow}>빠른 항목</p>
-              <h1>{category.label}</h1>
-              <p>{category.description}</p>
-            </div>
-          </section>
-        </div>
-
-        {checklist && (
-          <aside className={styles.checklistPanel}>
-            <h2>신청 전 체크</h2>
-            <ul className={styles.checklistList}>
-              {checklist.items.map((item) => (
-                <li key={item.id} className={styles.checklistRow}>
-                  <span className={styles.checklistBox} aria-hidden="true" />
-                  <div>
-                    <strong>{item.label}</strong>
-                    <p>{item.content}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </aside>
-        )}
-      </section>
+      {checklist && (
+        <aside className={styles.checklistPanel}>
+          <h2>신청 전 체크</h2>
+          <ul className={styles.checklistList}>
+            {checklist.items.map((item) => (
+              <li key={item.id} className={styles.checklistRow}>
+                <span className={styles.checklistBox} aria-hidden="true" />
+                <div>
+                  <strong>{item.label}</strong>
+                  <p>{item.content}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
 
       <section className={styles.twoColumn}>
         <div className={styles.section}>

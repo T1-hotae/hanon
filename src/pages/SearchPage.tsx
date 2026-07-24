@@ -1,5 +1,4 @@
 import { Link, useSearchParams } from 'react-router-dom'
-import { CategoryChips } from '../components/CategoryChips'
 import { Layout } from '../components/Layout'
 import { useAcademicData } from '../context/useAcademicData'
 import { incrementNoticeView } from '../services/inquiryService'
@@ -57,7 +56,6 @@ export function SearchPage() {
           <div className={styles.emptyState}>
             <h2>관련 정보를 찾지 못했습니다.</h2>
             <p>다른 검색어를 입력하거나 해당 부서에 전화로 문의하세요.</p>
-            <CategoryChips limitToPrimary />
           </div>
         )}
       </section>
