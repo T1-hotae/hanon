@@ -7,6 +7,15 @@ export const primaryCategories = (categories: Category[]): Category[] =>
     .filter((category) => category.id !== 'etc')
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 
+// 홈의 '많이 찾는 검색어'와 채팅 첫 화면의 추천 질문에서 함께 쓰는 목록.
+export const popularSearchKeywords = [
+  '휴학 신청 기간',
+  '복학 절차',
+  '수강신청 기간',
+  '전과 자격',
+  '장학금 신청 방법',
+]
+
 // 카테고리 label 안에 특정 키워드가 있으면 함께 인식할 동의어를 붙여 준다(재현율 보강).
 // 카테고리는 Firestore에서 동적으로 오므로, 기본 인식은 label 자체 토큰으로 하고 아래는 보조용이다.
 const SYNONYMS: { key: string; words: string[] }[] = [

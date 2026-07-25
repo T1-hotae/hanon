@@ -5,19 +5,22 @@ import { Layout } from '../components/Layout'
 import { useAcademicData } from '../context/useAcademicData'
 import {
   askAi,
+  buildConversationTitle,
+  clearStudentConversations,
   createConversation,
   createHumanConversation,
   ensureAnonymousAuth,
   markConversationReadByStudent,
   sendStudentMessage,
   setConversationCategory,
+  setConversationTitle,
   subscribeMessages,
   subscribeStudentConversations,
   type AiChatPayload,
   type ConversationSummary,
 } from '../services/chatService'
 import { createChatInquiry } from '../services/inquiryService'
-import { detectCategory } from '../constants'
+import { detectCategory, popularSearchKeywords } from '../constants'
 import type { ChatMessage } from '../types/academic'
 import {
   normalizeStudentNumber,
@@ -184,11 +187,12 @@ export function ChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queuedMessage, conversationId, mode])
 
-  // 통계용 분류는 UI에서 고르지 않고 첫 질문에서 추정한다(추정 실패 시 '기타').
-  const logInquiryOnce = (text: string) => {
+  // 첫 질문 1회 처리: 대화 제목으로 저장하고, 통계용 분류도 이 문장에서 추정한다(추정 실패 시 '기타').
+  const recordFirstQuestion = (text: string) => {
     if (!conversationId || conversationId === LOCAL || inquiryLoggedRef.current) return
     inquiryLoggedRef.current = true
     saveSession({ conversationId, mode, inquiryLogged: true })
+    void setConversationTitle(conversationId, buildConversationTitle(text))
     const detected = detectCategory(text, categories) ?? 'etc'
     void createChatInquiry(detected, text, conversationId)
     void setConversationCategory(conversationId, detected)
@@ -257,7 +261,7 @@ export function ChatPage() {
     }
 
     await sendStudentMessage(conversationId, 'student', trimmed)
-    logInquiryOnce(trimmed)
+    recordFirstQuestion(trimmed)
 
     setAiThinking(true)
     try {
@@ -289,7 +293,7 @@ export function ChatPage() {
       return
     }
     await sendStudentMessage(conversationId, 'student', trimmed)
-    logInquiryOnce(trimmed)
+    recordFirstQuestion(trimmed)
   }
 
   const send = async (text: string) => {
@@ -315,6 +319,16 @@ export function ChatPage() {
   const startNewConversation = () => {
     if (starting) return
     void startConversation()
+  }
+
+  // 채팅 기록 초기화: 지난 대화를 목록에서 모두 지우고 새 AI 대화로 시작한다.
+  const clearHistory = () => {
+    if (starting || conversations.length === 0) return
+    setStarting(true)
+    void clearStudentConversations(conversations.map((item) => item.id)).finally(() => {
+      setStarting(false)
+      void startConversation()
+    })
   }
 
   const requestEscalation = () => {
@@ -387,6 +401,11 @@ export function ChatPage() {
   // 상담사 채팅은 헤더·아바타·안내 문구를 모두 다르게 보여 AI 채팅과 헷갈리지 않게 한다.
   const isHuman = mode === 'human'
 
+  // 헤더 제목은 이 대화의 첫 질문. 아직 질문 전이거나 옛 대화라면 채팅 종류를 그대로 보여준다.
+  const defaultTitle = isHuman ? '상담사 상담' : '문무니 AI 상담'
+  const conversationTitle =
+    conversations.find((item) => item.id === conversationId)?.title || defaultTitle
+
   return (
     <Layout fullHeight>
       <div className={styles.chatLayout}>
@@ -396,6 +415,7 @@ export function ChatPage() {
           disabled={localMode || starting}
           onSelect={selectConversation}
           onNew={startNewConversation}
+          onClear={clearHistory}
         />
 
         <div className={styles.chatPage}>
@@ -414,7 +434,7 @@ export function ChatPage() {
                 )}
               </span>
               <span className={styles.chatPageTitle}>
-                <strong>{isHuman ? '상담사 상담' : '문무니 AI 상담'}</strong>
+                <strong title={conversationTitle}>{conversationTitle}</strong>
                 <span>
                   {isHuman ? '상담사가 확인 후 답변드려요' : 'AI가 학사 정보를 안내해 드려요'}
                 </span>
@@ -455,6 +475,27 @@ export function ChatPage() {
                     ? '문의 내용을 남겨 주세요. 상담사가 확인 후 순차적으로 답변드립니다. AI 답변은 오지 않아요.'
                     : '수강신청·장학금·졸업요건 등 학사 관련 궁금한 점을 아래에 입력해 주세요.'}
                 </p>
+                {/* 홈의 '많이 찾는 검색어'와 같은 목록을 눌러 바로 질문할 수 있게 한다. */}
+                {!isHuman && (
+                  <div className={styles.chatSuggestions}>
+                    <strong className={styles.chatSuggestionsLabel}>
+                      <span aria-hidden="true">✦</span>
+                      많이 찾는 질문
+                    </strong>
+                    <div className={styles.chatSuggestionList}>
+                      {popularSearchKeywords.map((keyword) => (
+                        <button
+                          key={keyword}
+                          type="button"
+                          onClick={() => void send(keyword)}
+                          disabled={aiThinking || starting || !conversationId}
+                        >
+                          # {keyword}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {messages.map((message) => {
@@ -478,8 +519,18 @@ export function ChatPage() {
                       <img src={munmuniMascot} alt="" />
                     )}
                   </span>
-                  <div className={styles.chatBubbleBot}>
-                    {label && <span className={styles.chatBubbleTag}>{label}</span>}
+                  <div
+                    className={`${styles.chatBubbleBot} ${isAdmin ? styles.chatBubbleAdmin : ''}`}
+                  >
+                    {label && (
+                      <span
+                        className={`${styles.chatBubbleTag} ${
+                          isAdmin ? styles.chatBubbleTagAdmin : ''
+                        }`}
+                      >
+                        {label}
+                      </span>
+                    )}
                     <p>{message.text}</p>
                   </div>
                 </div>
