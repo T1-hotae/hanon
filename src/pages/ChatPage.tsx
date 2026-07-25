@@ -624,6 +624,7 @@ export function ChatPage() {
               disabled={localMode || starting}
               onSelect={selectConversation}
               onNew={startNewConversation}
+              onClear={clearHistory}
             />
           </section>
         </div>
