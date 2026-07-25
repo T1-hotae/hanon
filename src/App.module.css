@@ -792,6 +792,8 @@
   white-space: nowrap;
 }
 
+/* 전화번호는 이 페이지의 핵심 정보이자 탭 대상이다.
+   숫자는 tabular-nums로 자릿수를 고르게 맞추고, 터치 영역을 40px 이상 확보한다. */
 .directoryCallBadge {
   align-items: center;
   background: var(--color-primary);
@@ -799,11 +801,14 @@
   color: #ffffff;
   display: inline-flex;
   flex: none;
-  font-size: 13px;
-  font-weight: 700;
-  gap: 6px;
+  font-size: 14.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  gap: 7px;
   justify-content: center;
-  padding: 7px 12px;
+  letter-spacing: -0.01em;
+  min-height: 40px;
+  padding: 8px 15px;
   white-space: nowrap;
 }
 
@@ -947,7 +952,53 @@
   color: var(--color-primary);
 }
 
-/* 전화번호부(디렉터리) 페이지 */
+/* 전화번호부(디렉터리) 페이지
+   홈·채팅과 같은 앰버 팔레트로 토큰을 재정의한다(전역 :root 테라코타를 쓰지 않는다).
+   --color-primary는 흰 글자·본문 대비를 확보하려고 진한 앰버(잉크)로 두고,
+   면으로 채우는 CTA에는 --color-accent(선명한 앰버) + 진한 갈색 글자를 쓴다. */
+.directoryPage {
+  --color-text: #221d18;
+  --color-text-muted: #817b75;
+  --color-border: #eee9e3;
+  --color-primary: #9a6608;
+  --color-primary-hover: #7f5406;
+  --color-accent: #ffb52e;
+  --color-accent-soft: #fff5df;
+  --radius-lg: 24px;
+  --shadow-sm: 0 12px 32px rgba(75, 59, 39, 0.055);
+  --shadow-md: 0 24px 56px rgba(237, 166, 50, 0.16);
+}
+
+.directoryPage .activeTab {
+  background: var(--color-accent);
+  border-color: #f2a41d;
+  color: #3a2703;
+}
+
+.directoryPage .directorySearch:focus {
+  box-shadow: 0 0 0 3px rgb(242 164 29 / 16%);
+}
+
+/* 전화 걸기 알약: 앰버 위 흰 글자는 대비가 부족해 진한 갈색 글자를 쓴다(약 8:1).
+   테두리는 hover로 행 배경이 옅은 앰버가 될 때 알약 경계가 뭉개지지 않게 잡아 준다. */
+.directoryPage .directoryCallBadge {
+  background: var(--color-accent);
+  border: 1px solid #f2a41d;
+  box-shadow: 0 8px 18px rgb(242 164 29 / 22%);
+  color: #3a2703;
+  transition: background-color var(--transition);
+}
+
+.directoryPage .directoryRow:hover .directoryCallBadge {
+  background: #f7a716;
+  border-color: #e0930b;
+}
+
+/* 업무명이 길면 모바일에서 잘리는 대신 줄바꿈해 전부 보이게 한다 */
+.directoryPage .directoryRow strong {
+  line-height: 1.4;
+}
+
 .directoryHint {
   color: var(--color-text-muted);
   margin: 0 0 16px;
@@ -1407,6 +1458,103 @@
 
 .modalActions button:hover {
   background: #6b5d4f;
+}
+
+/* 상담사 연결 모달 — 홈 화면과 같은 앰버 팔레트.
+   채팅 레이아웃 밖에서 열리므로 홈 토큰 대신 자체 토큰을 둔다. */
+.escalateModal {
+  --esc-amber: #ffb52e;
+  --esc-amber-deep: #ec9f19;
+  --esc-amber-soft: #fff5df;
+  --esc-amber-line: #ffe1a8;
+  --esc-amber-ink: #9a6608;
+
+  border: 1px solid var(--esc-amber-line);
+  border-radius: 24px;
+  box-shadow: inset 3px 0 0 var(--esc-amber), 0 24px 56px rgb(237 166 50 / 18%);
+}
+
+.escalateModal h2 {
+  color: #221d18;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  margin: 0 0 8px;
+}
+
+.escalateModal .contactHours {
+  color: #6f665d;
+  font-size: 13.5px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+.escalateModal .contactHours strong {
+  color: var(--esc-amber-ink);
+}
+
+.escalateModal .chatIdentityForm input:focus:not([aria-invalid='true']) {
+  border-color: var(--esc-amber-deep);
+  box-shadow: 0 0 0 3px rgb(242 164 29 / 18%);
+}
+
+/* 취소는 ghost, 제출은 홈 히어로와 같은 앰버 액션.
+   앰버 위 흰 글자는 대비가 부족해 진한 갈색 글자를 쓴다(약 8:1). */
+.escalateModal .modalActions button[type='button'] {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.escalateModal .modalActions button[type='button']:hover {
+  background: var(--esc-amber-soft);
+  border-color: var(--esc-amber-line);
+  color: var(--esc-amber-ink);
+}
+
+.escalateModal .modalActions button[type='submit'] {
+  background: linear-gradient(145deg, #ffc550, #ffad1f);
+  box-shadow: 0 8px 18px rgb(242 164 29 / 22%);
+  color: #3a2703;
+  transition: background var(--transition), transform var(--transition);
+}
+
+.escalateModal .modalActions button[type='submit']:hover:not(:disabled) {
+  background: linear-gradient(145deg, #ffbc35, #f19b0c);
+  transform: translateY(-1px);
+}
+
+.escalateModal .modalActions button[type='submit']:disabled {
+  box-shadow: none;
+  opacity: 0.5;
+  transform: none;
+}
+
+/* 좁은 화면에서는 체크리스트 모달과 같은 하단 시트로 붙인다 */
+@media (max-width: 520px) {
+  .escalateBackdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal.escalateModal {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    box-shadow: inset 0 3px 0 var(--esc-amber), 0 -18px 42px rgb(75 59 39 / 16%);
+    max-height: 88vh;
+    max-width: none;
+    overflow-y: auto;
+    padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
+  }
+
+  .escalateModal .modalActions {
+    gap: 8px;
+  }
+
+  .escalateModal .modalActions button {
+    flex: 1 1 auto;
+    padding: 14px 16px;
+  }
 }
 
 /* 카테고리 카드에서 여는 '신청 전 체크리스트' 모달
@@ -3424,8 +3572,9 @@ mark {
   }
 
   .directoryRow {
-    align-items: start;
-    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .directoryRow .questionBadge {
@@ -3433,9 +3582,17 @@ mark {
     justify-self: start;
   }
 
+  /* 좁은 화면일수록 전화번호를 줄이지 않는다. 업무명만 줄바꿈으로 흘린다. */
+  .directoryRow strong {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    word-break: keep-all;
+  }
+
   .directoryCallBadge {
-    font-size: 12.5px;
-    padding: 7px 10px;
+    font-size: 14px;
+    padding: 9px 14px;
   }
 }
 

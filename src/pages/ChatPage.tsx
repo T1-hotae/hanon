@@ -637,8 +637,13 @@ export function ChatPage() {
       )}
 
       {escalateOpen && (
-        <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-label="상담사 연결">
-          <div className={styles.modal}>
+        <div
+          className={`${styles.modalBackdrop} ${styles.escalateBackdrop}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="상담사 연결"
+        >
+          <div className={`${styles.modal} ${styles.escalateModal}`}>
             <h2>상담사 연결</h2>
             <p className={styles.contactHours}>
               학번, 학과, 이름을 알려주세요. 지금 AI 대화와 별개로 <strong>상담사 전용 채팅</strong>이

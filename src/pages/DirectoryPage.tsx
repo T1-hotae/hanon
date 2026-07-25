@@ -59,7 +59,7 @@ export function DirectoryPage() {
 
   return (
     <Layout>
-      <section className={styles.section}>
+      <section className={`${styles.section} ${styles.directoryPage}`}>
         <div className={styles.sectionTitle}>
           <h1>부서 전화번호 안내</h1>
         </div>
@@ -116,7 +116,7 @@ export function DirectoryPage() {
                       <span className={styles.questionBadge}>{contact.team}</span>
                       <strong>{contact.topic}</strong>
                       <span className={styles.directoryCallBadge}>
-                        <PhoneIcon size={14} />
+                        <PhoneIcon size={15} />
                         {contact.phone}
                       </span>
                     </a>
