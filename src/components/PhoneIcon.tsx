@@ -1,4 +1,23 @@
-export function PhoneIcon({ size = 26 }: { size?: number }) {
+export function PhoneIcon({
+  size = 26,
+  variant = 'line',
+}: {
+  size?: number
+  variant?: 'line' | 'cute'
+}) {
+  if (variant === 'cute') {
+    return (
+      <svg viewBox="0 0 32 32" width={size} height={size} fill="none" aria-hidden="true">
+        <path
+          d="M8.4 6.9c1.2-1.2 3.1-1 4.1.3l2.1 2.8c.8 1 .6 2.5-.4 3.3l-1.7 1.5a17.3 17.3 0 0 0 4.7 4.7l1.5-1.7c.8-1 2.3-1.2 3.3-.4l2.8 2.1c1.3 1 1.5 2.9.3 4.1l-1.4 1.4c-1.5 1.5-3.8 2-5.8 1.2A22.4 22.4 0 0 1 5.8 14.1c-.8-2-.3-4.3 1.2-5.8l1.4-1.4Z"
+          fill="currentColor"
+        />
+        <circle cx="23.8" cy="8.2" r="2.2" fill="#fff" opacity="0.95" />
+        <path d="M23.8 4.9V3.5M27 6.2l1-1M20.6 6.2l-1-1" stroke="currentColor" strokeLinecap="round" strokeWidth="1.4" />
+      </svg>
+    )
+  }
+
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" aria-hidden="true">
       <path

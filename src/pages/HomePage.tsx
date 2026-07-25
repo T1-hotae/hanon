@@ -12,7 +12,6 @@ import styles from '../App.module.css'
 function Hero() {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
-  const [animationEnabled, setAnimationEnabled] = useState(true)
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -29,17 +28,10 @@ function Hero() {
       </h1>
       <p className={styles.heroSubtitle}>궁금한 학사정보, 문무니가 빠르고 정확하게 알려드릴게요!</p>
 
-      <div className={`${styles.heroMascotWrap} ${animationEnabled ? '' : styles.heroAnimationPaused}`}>
-        <AnimatedMascot animationEnabled={animationEnabled} />
-        <span className={styles.heroBubble}>무엇이 궁금하신가요?</span>
-        <button
-          className={styles.heroAnimationToggle}
-          type="button"
-          aria-pressed={!animationEnabled}
-          onClick={() => setAnimationEnabled((enabled) => !enabled)}
-        >
-          {animationEnabled ? '움직임 끄기' : '움직임 켜기'}
-        </button>
+      <div className={styles.heroMascotWrap}>
+        <span className={`${styles.heroSparkle} ${styles.heroSparkleLeft}`} aria-hidden="true">✦</span>
+        <AnimatedMascot animationEnabled />
+        <span className={`${styles.heroSparkle} ${styles.heroSparkleRight}`} aria-hidden="true">✦</span>
       </div>
 
       <form className={styles.heroSearch} onSubmit={onSubmit}>
@@ -52,7 +44,7 @@ function Hero() {
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="궁금한 내용을 검색해보세요"
+          placeholder="궁금한 내용을 문무니에게 물어보세요"
           aria-label="궁금한 내용 검색"
         />
         <button type="submit" aria-label="검색">
@@ -66,24 +58,58 @@ function Hero() {
   )
 }
 
+const popularSearches = [
+  '휴학 신청 기간',
+  '복학 절차',
+  '수강신청 기간',
+  '전과 자격',
+  '장학금 신청 방법',
+]
+
+function PopularSearches() {
+  return (
+    <nav className={styles.popularSearches} aria-label="많이 찾는 검색어">
+      <strong className={styles.popularSearchesTitle}>
+        <span aria-hidden="true">✦</span>
+        많이 찾는 검색어
+      </strong>
+      <div className={styles.popularSearchLinks}>
+        {popularSearches.map((keyword) => (
+          <Link key={keyword} to={`/chat?q=${encodeURIComponent(keyword)}`}>
+            # {keyword}
+          </Link>
+        ))}
+      </div>
+      <Link className={styles.popularSearchMore} to="/chat">
+        더보기 <span aria-hidden="true">›</span>
+      </Link>
+    </nav>
+  )
+}
+
 export function HomePage() {
   const { notices } = useAcademicData()
   const popularNotices = sortNoticesByViews(notices).slice(0, 10)
 
   return (
-    <Layout>
-      <Hero />
-      <TopTabs />
+    <Layout home>
+      <div className={styles.homePage}>
+        <Hero />
+        <TopTabs />
+        <PopularSearches />
 
-      <PopularQuestions />
+        <div className={styles.homeLowerContent}>
+          <PopularQuestions />
 
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>
-          <h2>자주 찾는 원문 공지</h2>
-          <Link to="/notices">더보기</Link>
+          <section className={styles.section}>
+            <div className={styles.sectionTitle}>
+              <h2>자주 찾는 원문 공지</h2>
+              <Link to="/notices">더보기</Link>
+            </div>
+            <NoticeList notices={popularNotices} />
+          </section>
         </div>
-        <NoticeList notices={popularNotices} />
-      </section>
+      </div>
     </Layout>
   )
 }

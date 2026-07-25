@@ -3198,3 +3198,657 @@ mark {
     padding: 22px 18px;
   }
 }
+
+/* 2026 홈 화면 리디자인 */
+.header {
+  background: rgba(255, 253, 250, 0.94);
+  border-bottom: 0;
+  min-height: 92px;
+  padding: 20px clamp(22px, 3.4vw, 54px);
+}
+
+.logo {
+  align-items: center;
+  gap: 11px;
+  padding: 0;
+}
+
+.logoMascot {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  height: 60px;
+  justify-content: center;
+  overflow: hidden;
+  width: 68px;
+}
+
+.logoMascot img {
+  display: block;
+  height: 92px;
+  max-width: none;
+  object-fit: contain;
+  transform: translateY(-4px);
+  width: 92px;
+}
+
+.logoName {
+  color: #201b17;
+  font-family: "Malgun Gothic", "맑은 고딕", "NanumSquareRound", sans-serif;
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.055em;
+  line-height: 1;
+  -webkit-text-stroke: 0.18px currentColor;
+}
+
+.logoDivider {
+  background: #ded8d1;
+  display: inline-block;
+  height: 18px;
+  margin: 0 3px;
+  width: 1px;
+}
+
+.logoSub {
+  color: #66615c;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.menuButton {
+  align-items: center;
+  background: #fff4db;
+  border: 1px solid #ffe3a9;
+  border-radius: 999px;
+  box-shadow: 0 8px 20px rgba(237, 166, 45, 0.13);
+  color: #eda529;
+  display: inline-flex;
+  height: 50px;
+  justify-content: center;
+  transition: background-color var(--transition), border-color var(--transition), box-shadow var(--transition), color var(--transition), transform var(--transition);
+  width: 50px;
+}
+
+.menuButton:hover {
+  background: #ffedc7;
+  border-color: #ffd27a;
+  box-shadow: 0 10px 24px rgba(237, 166, 45, 0.2);
+  color: #df9415;
+  transform: translateY(-2px);
+}
+
+.menuButton svg {
+  fill: none;
+  height: 29px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  width: 29px;
+}
+
+.shellHome {
+  --color-bg: #fffdf9;
+  --color-surface: #ffffff;
+  --color-text: #221d18;
+  --color-text-muted: #817b75;
+  --color-border: #eee9e3;
+  --color-primary: #ec9f19;
+  --color-primary-hover: #d98b0b;
+  --color-accent: #ffb52e;
+  --color-accent-soft: #fff5df;
+  --radius-lg: 24px;
+  --shadow-sm: 0 12px 32px rgba(75, 59, 39, 0.055);
+  --shadow-md: 0 24px 56px rgba(237, 166, 50, 0.16);
+
+  max-width: 1120px;
+  padding: 8px clamp(20px, 4vw, 54px) 80px;
+}
+
+.homePage {
+  width: 100%;
+}
+
+.shellHome .hero {
+  align-items: center;
+  padding: clamp(8px, 1.3vw, 18px) 0 0;
+  width: 100%;
+}
+
+.shellHome .heroTitle {
+  color: #211c17;
+  font-size: clamp(38px, 3.8vw, 52px);
+  font-weight: 900;
+  letter-spacing: -0.055em;
+  line-height: 1.18;
+}
+
+.shellHome .heroTitle span {
+  color: #ffb52e;
+}
+
+.shellHome .heroSubtitle {
+  color: #8b8782;
+  font-size: clamp(15px, 1.45vw, 18px);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  margin-top: 8px;
+}
+
+.shellHome .heroMascotWrap {
+  margin: -22px auto 14px;
+  min-height: 250px;
+  width: min(870px, 100%);
+}
+
+.shellHome .heroMascotWrap::before {
+  background: radial-gradient(circle, rgba(255, 239, 207, 0.75) 0%, rgba(255, 248, 235, 0.35) 46%, rgba(255, 255, 255, 0) 72%);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: none;
+  height: 310px;
+  top: 50%;
+  width: 440px;
+}
+
+.shellHome .heroMascot {
+  height: 250px;
+  overflow: hidden;
+  width: 350px;
+}
+
+.shellHome .heroMascotImage,
+.shellHome .heroMascotOverlay {
+  transform: translateY(-62px);
+}
+
+.heroSparkle {
+  color: #ffbd35;
+  font-size: 29px;
+  line-height: 1;
+  position: absolute;
+  text-shadow: 23px 23px 0 #ffc447;
+  z-index: 3;
+}
+
+.heroSparkleLeft {
+  left: clamp(8%, 20vw, 21%);
+  top: 53%;
+}
+
+.heroSparkleRight {
+  right: clamp(8%, 20vw, 21%);
+  top: 31%;
+}
+
+.shellHome .heroSearch {
+  border-color: #ffd88b;
+  box-shadow: 0 20px 52px rgba(240, 171, 53, 0.16);
+  gap: 18px;
+  max-width: 870px;
+  margin-left: auto;
+  margin-right: auto;
+  min-height: 90px;
+  padding: 12px 14px 12px 30px;
+}
+
+.shellHome .heroSearchIcon {
+  color: #b7b8ba;
+}
+
+.shellHome .heroSearchIcon svg {
+  height: 30px;
+  stroke-width: 1.8;
+  width: 30px;
+}
+
+.shellHome .heroSearch input {
+  font-size: clamp(16px, 1.6vw, 19px);
+  font-weight: 500;
+}
+
+.shellHome .heroSearch input::placeholder {
+  color: #b5b5b5;
+  opacity: 1;
+}
+
+.shellHome .heroSearch button {
+  background: linear-gradient(145deg, #ffc550, #ffad1f);
+  box-shadow: 0 8px 18px rgba(242, 164, 29, 0.22);
+  height: 58px;
+  width: 58px;
+}
+
+.shellHome .heroSearch button:hover {
+  background: linear-gradient(145deg, #ffbc35, #f19b0c);
+}
+
+.shellHome .heroSearch button svg {
+  height: 26px;
+  width: 26px;
+}
+
+.shellHome .categorySlider {
+  gap: 12px;
+  margin: 40px auto 30px;
+  max-width: 890px;
+}
+
+.shellHome .categoryCards {
+  gap: 26px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.shellHome .categoryCard {
+  border-color: #f1ece6;
+  border-radius: 23px;
+  box-shadow: 0 14px 30px rgba(75, 59, 39, 0.075);
+  gap: 13px;
+  min-height: 238px;
+  padding: 27px 22px;
+}
+
+.shellHome .categoryCard:hover {
+  border-color: #ffd98f;
+  box-shadow: 0 22px 40px rgba(75, 59, 39, 0.11);
+  transform: translateY(-4px);
+}
+
+.shellHome .categoryCardIcon {
+  background: #fff3d8;
+  color: #f9b132;
+  height: 70px;
+  width: 70px;
+}
+
+.shellHome .categoryCard[data-category='course'] .categoryCardIcon {
+  background: #e8f4ff;
+  color: #4aa7ec;
+}
+
+.shellHome .categoryCard[data-category='leave'] .categoryCardIcon {
+  background: #e5f6ea;
+  color: #4dbb74;
+}
+
+.shellHome .categoryCard:hover .categoryCardIcon {
+  background: #fff0ce;
+  color: #eda31f;
+}
+
+.shellHome .categoryCard[data-category='course']:hover .categoryCardIcon {
+  background: #d9edff;
+  color: #2f96e4;
+}
+
+.shellHome .categoryCard[data-category='leave']:hover .categoryCardIcon {
+  background: #d7f0df;
+  color: #33a960;
+}
+
+.shellHome .categoryCardIcon svg {
+  height: 42px;
+  width: 42px;
+}
+
+.shellHome .categoryCard strong {
+  color: #211c18;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.shellHome .categoryCard > span:last-child {
+  color: #5f5a55;
+  font-size: 14.5px;
+  line-height: 1.58;
+  max-width: 190px;
+  word-break: keep-all;
+}
+
+.shellHome .categoryArrow {
+  border-color: #eee7de;
+  color: #9c9288;
+  height: 44px;
+  width: 44px;
+}
+
+.popularSearches {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid #ece8e2;
+  border-radius: 999px;
+  box-shadow: 0 9px 24px rgba(75, 59, 39, 0.035);
+  display: flex;
+  gap: 0;
+  margin: 0 auto;
+  min-height: 58px;
+  padding: 8px 19px;
+  width: 100%;
+}
+
+.popularSearchesTitle {
+  align-items: center;
+  border-right: 1px solid #eee9e3;
+  color: #28231e;
+  display: inline-flex;
+  flex: none;
+  font-size: 14px;
+  gap: 8px;
+  padding: 0 26px 0 5px;
+  white-space: nowrap;
+}
+
+.popularSearchesTitle span {
+  color: #ffbb31;
+  font-size: 21px;
+}
+
+.popularSearchLinks {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  justify-content: space-evenly;
+  min-width: 0;
+}
+
+.popularSearchLinks a,
+.popularSearchMore {
+  color: #5f5a55;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 8px 11px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.popularSearchLinks a:hover,
+.popularSearchMore:hover {
+  color: #e99d16;
+}
+
+.popularSearchMore {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  gap: 8px;
+}
+
+.popularSearchMore span {
+  font-size: 26px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.homeLowerContent {
+  display: grid;
+  gap: 24px;
+  margin-top: 46px;
+}
+
+.homeLowerContent .section {
+  border-color: #eee9e3;
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(75, 59, 39, 0.055);
+  margin: 0;
+  padding: clamp(22px, 3vw, 34px);
+}
+
+.homeLowerContent .sectionTitle h2 {
+  color: #28221d;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.homeLowerContent .sectionTitle a {
+  color: #a29a92;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.homeLowerContent .tabs {
+  background: #fffaf0;
+  border-radius: 14px;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 6px;
+}
+
+.homeLowerContent .tabs button {
+  border: 0;
+  border-radius: 10px;
+}
+
+.homeLowerContent .tabs .activeTab {
+  background: #ffb52e;
+  color: #ffffff;
+}
+
+.homeLowerContent .accordion {
+  gap: 0;
+}
+
+.homeLowerContent .faqItem {
+  border: 0;
+  border-bottom: 1px solid #eee9e3;
+  border-radius: 0;
+}
+
+.homeLowerContent .faqItem:last-child {
+  border-bottom: 0;
+}
+
+.homeLowerContent .faqItem > button {
+  min-height: 58px;
+  padding: 15px 12px;
+}
+
+.homeLowerContent .faqItem > button:hover {
+  background: #fffaf1;
+}
+
+.homeLowerContent .faqBody {
+  background: #fffaf1;
+  border-top-color: #f0e7d8;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  padding: 18px;
+}
+
+.homeLowerContent .noticeList li {
+  border-radius: 0;
+  padding: 16px 12px;
+}
+
+.homeLowerContent .noticeList li:hover {
+  background: #fffaf1;
+}
+
+@media (max-width: 860px) {
+  .shellHome .categoryCards {
+    gap: 16px;
+  }
+
+  .popularSearches {
+    border-radius: 22px;
+    overflow-x: auto;
+  }
+
+  .popularSearchLinks {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .header {
+    display: flex;
+    min-height: 76px;
+    padding: 12px 18px;
+  }
+
+  .logoMascot {
+    height: 52px;
+    width: 58px;
+  }
+
+  .logoMascot img {
+    height: 78px;
+    transform: translateY(-4px);
+    width: 78px;
+  }
+
+  .logoName {
+    font-size: 22px;
+  }
+
+  .logoDivider {
+    display: none;
+  }
+
+  .menuButton {
+    height: 42px;
+    width: 42px;
+  }
+
+  .shellHome {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .shellHome .hero {
+    padding-top: 10px;
+  }
+
+  .shellHome .heroTitle {
+    font-size: clamp(34px, 10vw, 44px);
+  }
+
+  .shellHome .heroSubtitle {
+    max-width: 310px;
+  }
+
+  .shellHome .heroMascotWrap {
+    margin: -20px auto 12px;
+    min-height: 230px;
+  }
+
+  .shellHome .heroMascot {
+    height: 230px;
+    width: 320px;
+  }
+
+  .shellHome .heroMascotImage,
+  .shellHome .heroMascotOverlay {
+    transform: translateY(-55px);
+  }
+
+  .heroSparkleLeft {
+    left: 3%;
+  }
+
+  .heroSparkleRight {
+    right: 3%;
+  }
+
+  .shellHome .heroSearch {
+    min-height: 72px;
+    padding: 8px 9px 8px 20px;
+  }
+
+  .shellHome .heroSearch button {
+    height: 52px;
+    width: 52px;
+  }
+
+  .shellHome .categorySlider {
+    margin-top: 28px;
+  }
+
+  .shellHome .categoryCards {
+    grid-template-columns: 1fr;
+  }
+
+  .shellHome .categoryCard {
+    display: grid;
+    gap: 4px 17px;
+    grid-template-columns: 64px 1fr;
+    justify-items: start;
+    min-height: 0;
+    padding: 19px 22px;
+    text-align: left;
+  }
+
+  .shellHome .categoryCardIcon {
+    grid-row: 1 / 3;
+    height: 60px;
+    width: 60px;
+  }
+
+  .shellHome .categoryCard strong {
+    align-self: end;
+    font-size: 18px;
+  }
+
+  .shellHome .categoryCard > span:last-child {
+    align-self: start;
+    max-width: none;
+  }
+
+  .popularSearches {
+    align-items: flex-start;
+    border-radius: 20px;
+    flex-direction: column;
+    padding: 12px 14px;
+  }
+
+  .popularSearchesTitle {
+    border-bottom: 1px solid #eee9e3;
+    border-right: 0;
+    padding: 0 7px 8px;
+    width: 100%;
+  }
+
+  .popularSearchLinks {
+    max-width: 100%;
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .popularSearchMore {
+    display: none;
+  }
+
+  .homeLowerContent {
+    margin-top: 32px;
+  }
+}
+
+@media (max-width: 440px) {
+  .logoSub {
+    display: none;
+  }
+
+  .shellHome .heroSearch {
+    gap: 10px;
+    padding-left: 17px;
+  }
+
+  .shellHome .heroSearchIcon svg {
+    height: 24px;
+    width: 24px;
+  }
+
+  .shellHome .heroSearch input {
+    font-size: 14px;
+  }
+
+  .shellHome .heroSearch button {
+    height: 48px;
+    width: 48px;
+  }
+
+  .homeLowerContent .section {
+    padding: 19px 16px;
+  }
+}
