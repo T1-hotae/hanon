@@ -82,11 +82,10 @@ export function TopTabs() {
   const toggleItem = (id: string) =>
     setCheckedIds((prev) => (prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id]))
 
+  // 채팅은 학사 항목으로 구분하지 않으므로 카테고리 없이 채팅으로 이동한다.
   const goToChat = () => {
-    if (!openCategory) return
-    const categoryId = openCategory.id
     setOpenCategory(null)
-    navigate(`/chat?c=${encodeURIComponent(categoryId)}`)
+    navigate('/chat')
   }
 
   return (

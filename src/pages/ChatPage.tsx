@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+﻿import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ChatHistoryPanel } from '../components/ChatHistoryPanel'
 import { Layout } from '../components/Layout'
@@ -10,6 +10,7 @@ import {
   escalateToHuman,
   markConversationReadByStudent,
   sendStudentMessage,
+  setConversationCategory,
   subscribeMessages,
   subscribeStudentConversations,
   type AiChatPayload,
@@ -17,7 +18,7 @@ import {
 } from '../services/chatService'
 import { createChatInquiry } from '../services/inquiryService'
 import { detectCategory } from '../constants'
-import { getCategory, type CategoryId, type ChatMessage } from '../types/academic'
+import type { ChatMessage } from '../types/academic'
 import {
   normalizeStudentNumber,
   resolveStudentIdentity,
@@ -37,7 +38,6 @@ type ChatMode = 'ai' | 'human'
 
 type StoredSession = {
   conversationId: string
-  category: CategoryId
   mode: ChatMode
   inquiryLogged?: boolean
 }
@@ -70,12 +70,13 @@ const senderLabel = (from: ChatMessage['from']): string | null => {
 }
 
 export function ChatPage() {
-  const { categories, checklists, contacts, departments, faqEntries, notices } = useAcademicData()
+  const { categories, checklists, contacts, departments, faqEntries, notices, loading } =
+    useAcademicData()
   const [searchParams, setSearchParams] = useSearchParams()
 
+  // 채팅은 학사 항목을 구분하지 않는다. 무엇을 물어도 전체 학사 자료로 답한다.
   // 모든 대화는 AI로 시작하고, '상담사 연결'로 관리자 문의(human)로 승격한다.
   const [mode, setMode] = useState<ChatMode>('ai')
-  const [category, setCategory] = useState<CategoryId | null>(null)
   const [studentName, setStudentName] = useState('')
   const [studentNumber, setStudentNumber] = useState('')
   const [studentDepartment, setStudentDepartment] = useState('')
@@ -94,18 +95,13 @@ export function ChatPage() {
   const didInitRef = useRef(false)
 
   const localMode = conversationId === LOCAL
-  const activeCategory = categories.find((item) => item.id === category)
-
-  // 히어로 검색이 카테고리 없이 들어올 때 사용할 기본 카테고리(기타 우선).
-  const defaultCategoryId = (): CategoryId | undefined =>
-    categories.find((item) => item.id === 'etc')?.id ?? categories[0]?.id
 
   const pushLocal = (from: ChatMessage['from'], text: string) => {
     setMessages((current) => [...current, { id: uid(), from, text, createdAt: Date.now() }])
   }
 
   // 대화 생성 후 AI 채팅 시작.
-  const startConversation = async (cat: CategoryId) => {
+  const startConversation = async () => {
     setStarting(true)
     setMode('ai')
     setEscalateOpen(false)
@@ -113,33 +109,26 @@ export function ChatPage() {
     setStudentNumber('')
     setStudentDepartment('')
     setIdentityErrors({})
-    setCategory(cat)
-    const convId = await createConversation(cat)
+    const convId = await createConversation()
     const nextId = convId ?? LOCAL
     setConversationId(nextId)
     setMessages([])
     inquiryLoggedRef.current = false
-    if (convId) saveSession({ conversationId: convId, category: cat, mode: 'ai' })
+    if (convId) saveSession({ conversationId: convId, mode: 'ai' })
     setStarting(false)
   }
 
-  // 진입 시 1회: ?c=카테고리 / ?q=질문 이 있으면 새 대화 시작, 없으면 세션 복구.
+  // 진입 시 1회: ?q=질문 이 있으면 그 질문으로 새 대화 시작, 없으면 세션 복구.
+  // 학사 자료(FAQ·공지 등)가 로드된 뒤에 시작해야 첫 질문에 제대로 답할 수 있다.
   useEffect(() => {
-    if (didInitRef.current || categories.length === 0) return
+    if (didInitRef.current || loading) return
     didInitRef.current = true
 
-    const c = searchParams.get('c') ?? undefined
     const q = searchParams.get('q') ?? undefined
 
-    if (c || q) {
-      // 카테고리 카드로 온 경우(c)는 그 카테고리, 히어로 검색(q)만 온 경우는 질문에서 키워드로 추정한다.
-      const explicit = c && categories.some((item) => item.id === c) ? c : undefined
-      const detected = q ? detectCategory(q, categories) : undefined
-      const cat = explicit ?? detected ?? defaultCategoryId()
-      if (cat) {
-        if (q) setQueuedMessage(q)
-        void startConversation(cat)
-      }
+    if (q) {
+      setQueuedMessage(q)
+      void startConversation()
       // 새로고침 시 재전송되지 않도록 파라미터 제거
       setSearchParams({}, { replace: true })
       return
@@ -148,15 +137,13 @@ export function ChatPage() {
     const session = loadSession()
     if (session) {
       setMode(session.mode)
-      setCategory(session.category)
       setConversationId(session.conversationId)
       inquiryLoggedRef.current = Boolean(session.inquiryLogged)
     } else {
-      const cat = defaultCategoryId()
-      if (cat) void startConversation(cat)
+      void startConversation()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categories])
+  }, [loading])
 
   // 메시지 실시간 구독 (로컬 모드는 제외)
   useEffect(() => {
@@ -165,7 +152,7 @@ export function ChatPage() {
     return unsubscribe
   }, [conversationId])
 
-  // 내(익명) 지난 대화 목록 실시간 구독 → 오른쪽 채팅 기록 패널
+  // 내(익명) 지난 대화 목록 실시간 구독 → 왼쪽 채팅 기록 패널
   useEffect(() => {
     let unsubscribe = () => {}
     let cancelled = false
@@ -187,36 +174,53 @@ export function ChatPage() {
 
   // 대화가 준비되면 대기 중인 첫 메시지를 자동 전송
   useEffect(() => {
-    if (!queuedMessage || !conversationId || !category || mode !== 'ai') return
+    if (!queuedMessage || !conversationId || mode !== 'ai') return
     const message = queuedMessage
     setQueuedMessage(null)
     void send(message)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queuedMessage, conversationId, category, mode])
+  }, [queuedMessage, conversationId, mode])
 
+  // 통계용 분류는 UI에서 고르지 않고 첫 질문에서 추정한다(추정 실패 시 '기타').
   const logInquiryOnce = (text: string) => {
-    if (!category || !conversationId || conversationId === LOCAL || inquiryLoggedRef.current) return
+    if (!conversationId || conversationId === LOCAL || inquiryLoggedRef.current) return
     inquiryLoggedRef.current = true
-    saveSession({ conversationId, category, mode, inquiryLogged: true })
-    void createChatInquiry(category, text, conversationId)
+    saveSession({ conversationId, mode, inquiryLogged: true })
+    const detected = detectCategory(text, categories) ?? 'etc'
+    void createChatInquiry(detected, text, conversationId)
+    void setConversationCategory(conversationId, detected)
   }
 
-  const buildKb = (cat: CategoryId): AiChatPayload['kb'] => {
-    const info = categories.find((item) => item.id === cat) ?? getCategory(cat, categories)
-    const checklist = checklists.find((item) => item.category === cat)
+  // 학사 항목을 구분하지 않으므로 전체 자료를 그대로 AI에게 전달한다.
+  // 항목별 자료(FAQ·체크리스트)에는 어느 항목의 내용인지 라벨을 붙여 섞이지 않게 한다.
+  const buildKb = (): AiChatPayload['kb'] => {
+    const labelOf = (id: string) => categories.find((item) => item.id === id)?.label ?? '기타'
     return {
-      faqs: faqEntries
-        .filter((item) => item.category === cat)
-        .map((item) => ({ id: item.id, question: item.question, answer: item.answer })),
-      notices: notices
-        .filter((item) => item.category === cat)
-        .map((item) => ({ id: item.id, title: item.title })),
-      checklist: checklist ? checklist.items.map((item) => ({ label: item.label, content: item.content })) : [],
-      contacts: contacts
-        .filter((item) => item.categories.includes(cat))
-        .map((item) => ({ team: item.team, topic: item.topic, phone: item.phone })),
-      phone: info?.phone,
-      hours: info?.hours,
+      faqs: faqEntries.map((item) => ({
+        id: item.id,
+        question: `[${labelOf(item.category)}] ${item.question}`,
+        answer: item.answer,
+      })),
+      notices: notices.map((item) => ({
+        id: item.id,
+        title: `[${labelOf(item.category)}] ${item.title}`,
+      })),
+      checklist: checklists.flatMap((checklist) =>
+        checklist.items.map((item) => ({
+          label: `[${labelOf(checklist.category)}] ${item.label}`,
+          content: item.content,
+        })),
+      ),
+      contacts: contacts.map((item) => ({
+        team: item.team,
+        topic: item.topic,
+        phone: item.phone,
+      })),
+      categories: categories.map((item) => ({
+        label: item.label,
+        phone: item.phone,
+        hours: item.hours,
+      })),
     }
   }
 
@@ -229,11 +233,9 @@ export function ChatPage() {
   ]
 
   const sendToAi = async (trimmed: string) => {
-    if (!category || !conversationId) return
-    const categoryLabel = (categories.find((item) => item.id === category) ?? getCategory(category, categories)).label
+    if (!conversationId) return
     const payload: AiChatPayload = {
-      categoryLabel,
-      kb: buildKb(category),
+      kb: buildKb(),
       history: buildHistory(messages, trimmed),
     }
 
@@ -277,7 +279,7 @@ export function ChatPage() {
   }
 
   const sendToHuman = async (trimmed: string) => {
-    if (!category || !conversationId) return
+    if (!conversationId) return
     if (localMode) {
       pushLocal('student', trimmed)
       pushLocal('bot', '데모 모드에서는 상담사 답변이 지원되지 않습니다.')
@@ -289,16 +291,10 @@ export function ChatPage() {
 
   const send = async (text: string) => {
     const trimmed = text.trim()
-    if (!trimmed || !category || !conversationId || aiThinking) return
+    if (!trimmed || !conversationId || aiThinking) return
     setCustomText('')
     if (mode === 'ai') await sendToAi(trimmed)
     else await sendToHuman(trimmed)
-  }
-
-  // 카테고리 변경 → 해당 카테고리로 새 대화 시작
-  const onCategoryChange = (id: CategoryId) => {
-    if (id === category || starting) return
-    void startConversation(id)
   }
 
   // 채팅 기록에서 지난 대화 선택 → 그 대화로 이어보기
@@ -308,17 +304,14 @@ export function ChatPage() {
     setEscalateOpen(false)
     setMessages([])
     setMode(nextMode)
-    setCategory(item.category)
     setConversationId(item.id)
     inquiryLoggedRef.current = true
-    saveSession({ conversationId: item.id, category: item.category, mode: nextMode, inquiryLogged: true })
+    saveSession({ conversationId: item.id, mode: nextMode, inquiryLogged: true })
   }
 
-  // 새 대화 시작(현재 카테고리 유지, 없으면 기본 카테고리)
   const startNewConversation = () => {
     if (starting) return
-    const cat = category ?? defaultCategoryId()
-    if (cat) void startConversation(cat)
+    void startConversation()
   }
 
   const requestEscalation = () => {
@@ -345,7 +338,7 @@ export function ChatPage() {
 
   const submitEscalation = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!conversationId || conversationId === LOCAL || !category || starting) return
+    if (!conversationId || conversationId === LOCAL || starting) return
 
     const { ok, errors, value } = resolveStudentIdentity(
       { studentName, studentNumber, studentDepartment },
@@ -358,7 +351,7 @@ export function ChatPage() {
     await escalateToHuman(conversationId, value)
     await sendStudentMessage(conversationId, 'bot', '상담사에게 연결했어요. 확인 후 순차적으로 답변드립니다.')
     setMode('human')
-    saveSession({ conversationId, category, mode: 'human', inquiryLogged: inquiryLoggedRef.current })
+    saveSession({ conversationId, mode: 'human', inquiryLogged: inquiryLoggedRef.current })
     setEscalateOpen(false)
     setStarting(false)
   }
@@ -374,151 +367,133 @@ export function ChatPage() {
   return (
     <Layout fullHeight>
       <div className={styles.chatLayout}>
-      <div className={styles.chatPage}>
-        <div className={styles.chatPageHeader}>
-          <div className={styles.chatPageHeaderInfo}>
-            <Link to="/" className={styles.chatPageBack} aria-label="홈으로">
-              ‹
-            </Link>
-            <span className={styles.chatPageAvatar}>
-              <img src={munmuniMascot} alt="" aria-hidden="true" />
-            </span>
-            <span className={styles.chatPageTitle}>
-              <strong>문무니 AI 상담</strong>
-              <span>
-                {mode === 'ai' ? 'AI가 학사 정보를 안내해 드려요' : '상담사가 확인 후 답변드려요'}
-              </span>
-            </span>
-          </div>
-          {mode === 'ai' ? (
-            <button
-              type="button"
-              className={styles.chatPageEscalate}
-              onClick={requestEscalation}
-              disabled={aiThinking || starting || localMode}
-            >
-              상담사 연결
-            </button>
-          ) : (
-            <span className={styles.chatPageHumanBadge}>상담사 연결됨</span>
-          )}
-        </div>
-
-        <div className={styles.chatPageToolbar}>
-          <label className={styles.chatPageCategory}>
-            <span>학사 항목</span>
-            <select
-              value={category ?? ''}
-              onChange={(event) => onCategoryChange(event.target.value)}
-              disabled={starting || categories.length === 0}
-            >
-              {categories.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div
-          className={`${styles.chatPageMessages} ${
-            messages.length === 0 && !aiThinking ? styles.chatPageMessagesEmpty : ''
-          }`}
-          ref={bodyRef}
-        >
-          {messages.length === 0 && !aiThinking && (
-            <div className={styles.chatWelcome}>
-              <img src={munmuniMascot} alt="문무니" className={styles.chatWelcomeMascot} />
-              <strong>{mode === 'ai' ? '무엇이든 물어보세요!' : '문의 내용을 남겨 주세요'}</strong>
-              <p>
-                {mode === 'ai'
-                  ? `${activeCategory?.label ?? '학사'} 관련 궁금한 점을 아래에 입력해 주세요.`
-                  : `${activeCategory?.label ?? '학사'} 관련 문의 내용을 남겨 주세요. 상담사가 확인 후 순차적으로 답변드립니다.`}
-              </p>
-            </div>
-          )}
-          {messages.map((message) => {
-            if (message.from === 'student') {
-              return (
-                <div key={message.id} className={styles.chatRowUser}>
-                  <div className={styles.chatBubbleUser}>
-                    <p>{message.text}</p>
-                  </div>
-                </div>
-              )
-            }
-            const label = senderLabel(message.from)
-            const isAdmin = message.from === 'admin'
-            return (
-              <div key={message.id} className={styles.chatRowBot}>
-                <span className={styles.chatAvatar} aria-hidden="true">
-                  {isAdmin ? (
-                    <span className={styles.chatAvatarAdmin}>상담</span>
-                  ) : (
-                    <img src={munmuniMascot} alt="" />
-                  )}
-                </span>
-                <div className={styles.chatBubbleBot}>
-                  {label && <span className={styles.chatBubbleTag}>{label}</span>}
-                  <p>{message.text}</p>
-                </div>
-              </div>
-            )
-          })}
-          {aiThinking && (
-            <div className={styles.chatRowBot}>
-              <span className={styles.chatAvatar} aria-hidden="true">
-                <img src={munmuniMascot} alt="" />
-              </span>
-              <div className={styles.chatBubbleBot}>
-                <p className={styles.chatTyping}>
-                  <span />
-                  <span />
-                  <span />
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className={styles.chatPageComposer}>
-          <form className={styles.chatCustomForm} onSubmit={onCustomSubmit}>
-            <input
-              value={customText}
-              onChange={(event) => setCustomText(event.target.value)}
-              placeholder={mode === 'ai' ? '궁금한 내용을 입력해 주세요' : '상담사에게 남길 내용을 입력해 주세요'}
-              aria-label="문의 내용"
-              autoFocus
-            />
-            <button type="submit" disabled={aiThinking} aria-label="보내기">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M5 12h14" />
-                <path d="m13 5 7 7-7 7" />
-              </svg>
-            </button>
-          </form>
-        </div>
-      </div>
-
         <ChatHistoryPanel
           items={conversations}
           activeId={conversationId}
-          categories={categories}
           disabled={localMode || starting}
           onSelect={selectConversation}
           onNew={startNewConversation}
         />
+
+        <div className={styles.chatPage}>
+          <div className={styles.chatPageHeader}>
+            <div className={styles.chatPageHeaderInfo}>
+              <Link to="/" className={styles.chatPageBack} aria-label="홈으로">
+                ‹
+              </Link>
+              <span className={styles.chatPageAvatar}>
+                <img src={munmuniMascot} alt="" aria-hidden="true" />
+              </span>
+              <span className={styles.chatPageTitle}>
+                <strong>문무니 AI 상담</strong>
+                <span>
+                  {mode === 'ai' ? 'AI가 학사 정보를 안내해 드려요' : '상담사가 확인 후 답변드려요'}
+                </span>
+              </span>
+            </div>
+            {mode === 'ai' ? (
+              <button
+                type="button"
+                className={styles.chatPageEscalate}
+                onClick={requestEscalation}
+                disabled={aiThinking || starting || localMode}
+              >
+                상담사 연결
+              </button>
+            ) : (
+              <span className={styles.chatPageHumanBadge}>상담사 연결됨</span>
+            )}
+          </div>
+
+          <div
+            className={`${styles.chatPageMessages} ${
+              messages.length === 0 && !aiThinking ? styles.chatPageMessagesEmpty : ''
+            }`}
+            ref={bodyRef}
+          >
+            {messages.length === 0 && !aiThinking && (
+              <div className={styles.chatWelcome}>
+                <img src={munmuniMascot} alt="문무니" className={styles.chatWelcomeMascot} />
+                <strong>{mode === 'ai' ? '무엇이든 물어보세요!' : '문의 내용을 남겨 주세요'}</strong>
+                <p>
+                  {mode === 'ai'
+                    ? '수강신청·장학금·졸업요건 등 학사 관련 궁금한 점을 아래에 입력해 주세요.'
+                    : '문의 내용을 남겨 주세요. 상담사가 확인 후 순차적으로 답변드립니다.'}
+                </p>
+              </div>
+            )}
+            {messages.map((message) => {
+              if (message.from === 'student') {
+                return (
+                  <div key={message.id} className={styles.chatRowUser}>
+                    <div className={styles.chatBubbleUser}>
+                      <p>{message.text}</p>
+                    </div>
+                  </div>
+                )
+              }
+              const label = senderLabel(message.from)
+              const isAdmin = message.from === 'admin'
+              return (
+                <div key={message.id} className={styles.chatRowBot}>
+                  <span className={styles.chatAvatar} aria-hidden="true">
+                    {isAdmin ? (
+                      <span className={styles.chatAvatarAdmin}>상담</span>
+                    ) : (
+                      <img src={munmuniMascot} alt="" />
+                    )}
+                  </span>
+                  <div className={styles.chatBubbleBot}>
+                    {label && <span className={styles.chatBubbleTag}>{label}</span>}
+                    <p>{message.text}</p>
+                  </div>
+                </div>
+              )
+            })}
+            {aiThinking && (
+              <div className={styles.chatRowBot}>
+                <span className={styles.chatAvatar} aria-hidden="true">
+                  <img src={munmuniMascot} alt="" />
+                </span>
+                <div className={styles.chatBubbleBot}>
+                  <p className={styles.chatTyping}>
+                    <span />
+                    <span />
+                    <span />
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.chatPageComposer}>
+            <form className={styles.chatCustomForm} onSubmit={onCustomSubmit}>
+              <input
+                value={customText}
+                onChange={(event) => setCustomText(event.target.value)}
+                placeholder={mode === 'ai' ? '궁금한 내용을 입력해 주세요' : '상담사에게 남길 내용을 입력해 주세요'}
+                aria-label="문의 내용"
+                autoFocus
+              />
+              <button type="submit" disabled={aiThinking} aria-label="보내기">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12h14" />
+                  <path d="m13 5 7 7-7 7" />
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
 
       {escalateOpen && (

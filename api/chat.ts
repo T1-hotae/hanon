@@ -9,22 +9,22 @@ type KbFaq = { id: string; question: string; answer: string }
 type KbNotice = { id: string; title: string; body?: string }
 type KbChecklistItem = { label: string; content: string }
 type KbContact = { team: string; topic: string; phone: string }
+type KbCategory = { label: string; phone?: string; hours?: string }
 type ChatTurn = { role: 'user' | 'assistant'; content: string }
 
+// 채팅은 학사 항목을 구분하지 않는다. 전체 학사 자료를 받아 어떤 질문이든 답한다.
 type RequestBody = {
-  categoryLabel?: string
   kb?: {
     faqs?: KbFaq[]
     notices?: KbNotice[]
     checklist?: KbChecklistItem[]
     contacts?: KbContact[]
-    phone?: string
-    hours?: string
+    categories?: KbCategory[]
   }
   history?: ChatTurn[]
 }
 
-const buildSystemPrompt = (categoryLabel: string, kb: RequestBody['kb']): string => {
+const buildSystemPrompt = (kb: RequestBody['kb']): string => {
   const faqs = (kb?.faqs ?? [])
     .map((f) => `- [${f.id}] Q: ${f.question}\n  A: ${f.answer}`)
     .join('\n')
@@ -37,10 +37,19 @@ const buildSystemPrompt = (categoryLabel: string, kb: RequestBody['kb']): string
   const contacts = (kb?.contacts ?? [])
     .map((c) => `- ${c.team} · ${c.topic}: ${c.phone}`)
     .join('\n')
+  const categories = (kb?.categories ?? [])
+    .map((c) => {
+      const detail = [c.phone ? `전화 ${c.phone}` : '', c.hours ? `운영 시간 ${c.hours}` : '']
+        .filter(Boolean)
+        .join(' / ')
+      return `- ${c.label}${detail ? `: ${detail}` : ''}`
+    })
+    .join('\n')
 
   return [
     '당신은 대학교 "학사 한눈에" 서비스의 학사 안내 상담 도우미입니다.',
-    `현재 상담 카테고리: ${categoryLabel || '일반'}.`,
+    '학생은 주제를 미리 고르지 않고 자유롭게 질문합니다. 아래 <자료>에 담긴 모든 학사 주제를 함께 다루세요.',
+    '자료 항목 앞의 [대괄호 라벨]은 그 내용이 속한 학사 항목입니다. 질문과 관련된 항목의 내용을 골라 답하세요.',
     '',
     '규칙:',
     '1) 아래 <자료> 안에 있는 정보로만 답하세요. 자료에 없는 내용은 지어내지 마세요.',
@@ -51,11 +60,11 @@ const buildSystemPrompt = (categoryLabel: string, kb: RequestBody['kb']): string
     '6) 전화 문의가 더 정확한 질문이면 [담당 부서 연락처]의 부서명과 번호를 그대로 안내하세요. 목록에 없는 번호는 지어내지 마세요.',
     '',
     '<자료>',
-    kb?.hours ? `운영 시간: ${kb.hours}` : '',
+    categories ? `[학사 항목별 문의처·운영 시간]\n${categories}` : '',
     faqs ? `\n[자주 묻는 질문]\n${faqs}` : '',
     notices ? `\n[공지]\n${notices}` : '',
     checklist ? `\n[신청 전 체크리스트]\n${checklist}` : '',
-    contacts ? `\n[담당 부서 연락처]\n${contacts}` : (kb?.phone ? `\n문의 전화: ${kb.phone}` : ''),
+    contacts ? `\n[담당 부서 연락처]\n${contacts}` : '',
     '</자료>',
   ]
     .filter(Boolean)
@@ -85,7 +94,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       model: MODEL,
       max_tokens: 600,
       messages: [
-        { role: 'system', content: buildSystemPrompt(body.categoryLabel ?? '', body.kb) },
+        { role: 'system', content: buildSystemPrompt(body.kb) },
         ...history,
       ],
       response_format: {

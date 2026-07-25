@@ -1942,7 +1942,7 @@ mark {
   width: 360px;
 }
 
-/* 오른쪽 채팅 기록 패널: 헤더는 고정, 목록만 내부 스크롤. */
+/* 왼쪽 채팅 기록 패널: 헤더는 고정, 목록만 내부 스크롤. */
 .chatHistoryPanel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -1953,7 +1953,7 @@ mark {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  width: 300px;
+  width: 288px;
 }
 
 .chatHistoryHead {
@@ -1963,69 +1963,116 @@ mark {
   flex: none;
   gap: 10px;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 14px 14px 12px;
 }
 
 .chatHistoryHead h3 {
-  font-size: 15px;
+  align-items: center;
+  display: flex;
+  font-size: 14.5px;
+  gap: 6px;
   margin: 0;
 }
 
+/* 대화 개수: 제목 옆 작은 알약 배지 */
+.chatHistoryCount {
+  background: var(--color-bg);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 7px;
+}
+
 .chatHistoryNew {
-  background: var(--color-accent-soft);
+  align-items: center;
+  background: var(--color-accent);
   border: 1px solid var(--color-accent);
   border-radius: 999px;
-  color: var(--color-accent);
+  color: #fff;
   cursor: pointer;
+  display: inline-flex;
   flex: none;
   font: inherit;
   font-size: 12.5px;
   font-weight: 700;
-  padding: 6px 12px;
-  transition: transform var(--transition), background-color var(--transition);
+  gap: 4px;
+  padding: 6px 11px 6px 9px;
+  transition: transform var(--transition), filter var(--transition), opacity var(--transition);
 }
 
 .chatHistoryNew:hover:not(:disabled) {
+  filter: brightness(1.06);
   transform: translateY(-1px);
 }
 
 .chatHistoryNew:disabled {
   cursor: default;
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 .chatHistoryEmpty {
   color: var(--color-text-muted);
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.65;
   margin: 0;
-  padding: 20px 16px;
+  padding: 22px 16px;
+  text-align: center;
 }
 
 .chatHistoryList {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   list-style: none;
   margin: 0;
   min-height: 0;
   overflow-y: auto;
   padding: 8px;
+  scrollbar-color: var(--color-border) transparent;
+  scrollbar-width: thin;
 }
 
+.chatHistoryList::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chatHistoryList::-webkit-scrollbar-thumb {
+  background-clip: padding-box;
+  background-color: var(--color-border);
+  border: 2px solid transparent;
+  border-radius: 999px;
+}
+
+/* 선택된 대화는 왼쪽 액센트 바로 표시한다(테두리 대신 더 가볍게). */
 .chatHistoryItem {
   background: transparent;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: var(--radius-md);
   cursor: pointer;
   display: grid;
   font: inherit;
-  gap: 4px;
+  gap: 3px;
   padding: 10px 12px;
+  position: relative;
   text-align: left;
-  transition: background-color var(--transition), border-color var(--transition);
+  transition: background-color var(--transition);
   width: 100%;
+}
+
+.chatHistoryItem::before {
+  background: var(--color-accent);
+  border-radius: 0 3px 3px 0;
+  bottom: 8px;
+  content: '';
+  left: 0;
+  opacity: 0;
+  position: absolute;
+  top: 8px;
+  transition: opacity var(--transition);
+  width: 3px;
 }
 
 .chatHistoryItem:hover {
@@ -2035,7 +2082,14 @@ mark {
 .chatHistoryItemActive,
 .chatHistoryItemActive:hover {
   background: var(--color-accent-soft);
-  border-color: var(--color-accent);
+}
+
+.chatHistoryItemActive::before {
+  opacity: 1;
+}
+
+.chatHistoryItemActive .chatHistoryCategory {
+  color: var(--color-accent);
 }
 
 .chatHistoryItemTop {
@@ -2045,40 +2099,51 @@ mark {
   justify-content: space-between;
 }
 
+/* 상담 종류: 앞에 작은 점을 찍어 AI/상담사를 색으로 구분한다. */
 .chatHistoryCategory {
+  align-items: center;
   color: var(--color-text);
-  font-size: 13.5px;
+  display: flex;
+  font-size: 13px;
   font-weight: 700;
+  gap: 6px;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.chatHistoryCategory::before {
+  background: var(--color-accent);
+  border-radius: 50%;
+  content: '';
+  flex: none;
+  height: 6px;
+  width: 6px;
+}
+
+.chatHistoryCategoryHuman::before {
+  background: var(--color-text-muted);
+}
+
 .chatHistoryWhen {
   color: var(--color-text-muted);
   flex: none;
-  font-size: 11.5px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
+/* 미리보기는 상담 종류의 점만큼 들여써 라벨과 왼쪽을 맞춘다. */
 .chatHistoryPreview {
   color: var(--color-text-muted);
   display: -webkit-box;
   font-size: 12.5px;
   line-height: 1.5;
   overflow: hidden;
+  padding-left: 12px;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
-}
-
-.chatHistoryBadge {
-  background: var(--color-accent-soft);
-  border-radius: 999px;
-  color: var(--color-accent);
-  font-size: 11px;
-  font-weight: 700;
-  justify-self: start;
-  padding: 2px 8px;
 }
 
 .chatInfoBlock {
@@ -2167,14 +2232,6 @@ mark {
   white-space: nowrap;
 }
 
-.chatPageToolbar {
-  align-items: center;
-  display: flex;
-  flex: none;
-  justify-content: flex-end;
-  margin-bottom: 8px;
-}
-
 .chatPageBack {
   align-items: center;
   border: 1px solid var(--color-border);
@@ -2194,31 +2251,6 @@ mark {
 .chatPageBack:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
-}
-
-.chatPageCategory {
-  align-items: center;
-  color: var(--color-text-muted);
-  display: flex;
-  font-size: 13px;
-  font-weight: 700;
-  gap: 8px;
-  min-width: 0;
-}
-
-.chatPageCategory select {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-text);
-  font: inherit;
-  font-weight: 700;
-  padding: 8px 12px;
-}
-
-.chatPageCategory select:focus {
-  border-color: var(--color-primary);
-  outline: none;
 }
 
 .chatPageEscalate {

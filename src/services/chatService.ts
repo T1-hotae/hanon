@@ -23,15 +23,14 @@ export type AiAnswer = {
   relatedNoticeIds: string[]
 }
 
+// 채팅은 학사 항목을 구분하지 않으므로 전체 학사 자료를 그대로 보낸다.
 export type AiChatPayload = {
-  categoryLabel: string
   kb: {
     faqs: { id: string; question: string; answer: string }[]
     notices: { id: string; title: string; body?: string }[]
     checklist: { label: string; content: string }[]
     contacts?: { team: string; topic: string; phone: string }[]
-    phone?: string
-    hours?: string
+    categories?: { label: string; phone?: string; hours?: string }[]
   }
   history: { role: 'user' | 'assistant'; content: string }[]
 }
@@ -57,7 +56,8 @@ export const ensureAnonymousAuth = async (): Promise<string | null> => {
 
 // 새 대화 생성. Firestore 미설정 시 로컬 임시 id를 반환한다.
 // 학생 식별정보(학번·학과·이름)는 이 시점에 받지 않고, '상담사 연결' 시 escalateToHuman에서 채운다.
-export const createConversation = async (category: CategoryId): Promise<string | null> => {
+// 학사 항목(category)도 시작 시점에 고르지 않는다. 첫 질문에서 추정해 setConversationCategory로 채운다.
+export const createConversation = async (): Promise<string | null> => {
   if (!firestore) return null
   const studentId = await ensureAnonymousAuth()
   if (!studentId) return null
@@ -68,7 +68,7 @@ export const createConversation = async (category: CategoryId): Promise<string |
     studentNumber: '',
     studentDepartment: '',
     studentDepartmentId: '',
-    category,
+    category: '',
     status: 'open',
     lastMessage: '',
     lastMessageAt: serverTimestamp(),
@@ -114,7 +114,7 @@ export type ConversationSummary = {
   needsHuman: boolean
 }
 
-// 현재(익명) 학생의 대화 목록을 실시간 구독한다. 오른쪽 '채팅 기록' 패널에 사용.
+// 현재(익명) 학생의 대화 목록을 실시간 구독한다. 왼쪽 '채팅 기록' 패널에 사용.
 // 복합 색인을 피하려고 studentId 필터만 서버에서 걸고 정렬은 클라이언트에서 한다.
 export const subscribeStudentConversations = (
   studentId: string,
@@ -176,6 +176,19 @@ export const markConversationReadByStudent = async (conversationId: string): Pro
     )
   } catch (error) {
     console.warn('대화 읽음 처리에 실패했습니다.', error)
+  }
+}
+
+// 첫 질문에서 추정한 학사 항목을 대화에 기록한다(관리자 통계·분류용, 화면에는 쓰지 않는다).
+export const setConversationCategory = async (
+  conversationId: string,
+  category: CategoryId,
+): Promise<void> => {
+  if (!firestore) return
+  try {
+    await setDoc(doc(firestore, 'conversations', conversationId), { category }, { merge: true })
+  } catch (error) {
+    console.warn('대화 분류 저장에 실패했습니다.', error)
   }
 }
 

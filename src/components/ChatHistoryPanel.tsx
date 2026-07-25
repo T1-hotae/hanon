@@ -1,11 +1,9 @@
 import type { ConversationSummary } from '../services/chatService'
-import type { Category, CategoryId } from '../types/academic'
 import styles from '../App.module.css'
 
 type Props = {
   items: ConversationSummary[]
   activeId: string | null
-  categories: Category[]
   disabled?: boolean
   onSelect: (item: ConversationSummary) => void
   onNew: () => void
@@ -24,16 +22,31 @@ const formatWhen = (timestamp: number): string => {
   return `${date.getMonth() + 1}.${String(date.getDate()).padStart(2, '0')}`
 }
 
-// 오른쪽 사이드: 지난 대화 목록(채팅 기록). 클릭하면 해당 대화로 이어서 볼 수 있다.
-export function ChatHistoryPanel({ items, activeId, categories, disabled, onSelect, onNew }: Props) {
-  const labelOf = (id: CategoryId) => categories.find((item) => item.id === id)?.label ?? '학사'
-
+// 왼쪽 사이드: 지난 대화 목록(채팅 기록). 클릭하면 해당 대화로 이어서 볼 수 있다.
+// 학사 항목으로 구분하지 않으므로 항목 라벨 대신 상담 종류(AI/상담사)만 보여준다.
+export function ChatHistoryPanel({ items, activeId, disabled, onSelect, onNew }: Props) {
   return (
     <aside className={styles.chatHistoryPanel} aria-label="채팅 기록">
       <div className={styles.chatHistoryHead}>
-        <h3>채팅 기록</h3>
+        <h3>
+          채팅 기록
+          {items.length > 0 && <span className={styles.chatHistoryCount}>{items.length}</span>}
+        </h3>
         <button type="button" className={styles.chatHistoryNew} onClick={onNew} disabled={disabled}>
-          + 새 대화
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14" />
+            <path d="M5 12h14" />
+          </svg>
+          새 대화
         </button>
       </div>
 
@@ -54,11 +67,16 @@ export function ChatHistoryPanel({ items, activeId, categories, disabled, onSele
                 aria-current={item.id === activeId ? 'true' : undefined}
               >
                 <span className={styles.chatHistoryItemTop}>
-                  <span className={styles.chatHistoryCategory}>{labelOf(item.category)}</span>
+                  <span
+                    className={`${styles.chatHistoryCategory} ${
+                      item.needsHuman ? styles.chatHistoryCategoryHuman : ''
+                    }`}
+                  >
+                    {item.needsHuman ? '상담사 상담' : 'AI 상담'}
+                  </span>
                   <span className={styles.chatHistoryWhen}>{formatWhen(item.lastMessageAt)}</span>
                 </span>
                 <span className={styles.chatHistoryPreview}>{item.lastMessage}</span>
-                {item.needsHuman && <span className={styles.chatHistoryBadge}>상담사</span>}
               </button>
             </li>
           ))}
