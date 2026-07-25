@@ -6,6 +6,7 @@ import { NoticeList } from '../components/NoticeList'
 import { PopularQuestions } from '../components/PopularQuestions'
 import { TopTabs } from '../components/TopTabs'
 import { useAcademicData } from '../context/useAcademicData'
+import { popularSearchKeywords } from '../constants'
 import { sortNoticesByViews } from '../utils/format'
 import styles from '../App.module.css'
 
@@ -58,14 +59,6 @@ function Hero() {
   )
 }
 
-const popularSearches = [
-  '휴학 신청 기간',
-  '복학 절차',
-  '수강신청 기간',
-  '전과 자격',
-  '장학금 신청 방법',
-]
-
 function PopularSearches() {
   return (
     <nav className={styles.popularSearches} aria-label="많이 찾는 검색어">
@@ -74,7 +67,7 @@ function PopularSearches() {
         많이 찾는 검색어
       </strong>
       <div className={styles.popularSearchLinks}>
-        {popularSearches.map((keyword) => (
+        {popularSearchKeywords.map((keyword) => (
           <Link key={keyword} to={`/chat?q=${encodeURIComponent(keyword)}`}>
             # {keyword}
           </Link>

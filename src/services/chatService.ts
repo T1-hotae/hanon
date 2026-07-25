@@ -12,6 +12,7 @@ import {
   Timestamp,
   updateDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore'
 import type { CategoryId, ChatMessage } from '../types/academic'
 import type { StudentIdentity } from '../utils/studentIdentity'
@@ -58,6 +59,7 @@ export const ensureAnonymousAuth = async (): Promise<string | null> => {
 // AI 대화와 상담사 대화는 완전히 분리된 별개의 대화다. needsHuman은 생성 이후 바뀌지 않는다.
 // 학생 식별정보(학번·학과·이름)는 AI 대화에서 받지 않는다(상담사 대화에서만 받는다).
 // 학사 항목(category)도 시작 시점에 고르지 않는다. 첫 질문에서 추정해 setConversationCategory로 채운다.
+// 제목(title)도 마찬가지로 빈 값으로 두고, 첫 질문이 들어올 때 setConversationTitle로 채운다.
 export const createConversation = async (): Promise<string | null> => {
   if (!firestore) return null
   const studentId = await ensureAnonymousAuth()
@@ -70,6 +72,7 @@ export const createConversation = async (): Promise<string | null> => {
     studentDepartment: '',
     studentDepartmentId: '',
     category: '',
+    title: '',
     status: 'open',
     lastMessage: '',
     lastMessageAt: serverTimestamp(),
@@ -78,6 +81,7 @@ export const createConversation = async (): Promise<string | null> => {
     unreadForStudent: false,
     needsHuman: false,
     studentMessageCount: 0,
+    hiddenForStudent: false,
   })
   return ref.id
 }
@@ -97,6 +101,7 @@ export const createHumanConversation = async (
     studentId,
     ...identity,
     category: '',
+    title: '',
     status: 'open',
     lastMessage: '',
     lastMessageAt: serverTimestamp(),
@@ -105,6 +110,7 @@ export const createHumanConversation = async (
     unreadForStudent: false,
     needsHuman: true,
     studentMessageCount: 0,
+    hiddenForStudent: false,
     // 어느 AI 대화에서 넘어왔는지 추적용(학생 화면에는 쓰지 않는다).
     ...(sourceConversationId ? { sourceConversationId } : {}),
   })
@@ -139,9 +145,13 @@ export const sendStudentMessage = async (
 export type ConversationSummary = {
   id: string
   category: CategoryId
+  // 대화 제목 = 학생이 처음 보낸 질문(제목이 아직 없는 옛 대화는 빈 문자열).
+  title: string
   lastMessage: string
   lastMessageAt: number
   needsHuman: boolean
+  // 학생이 '기록 초기화'로 목록에서 지운 대화. 상담 기록 자체는 관리자 쪽에 남는다.
+  hiddenForStudent: boolean
 }
 
 // 현재(익명) 학생의 대화 목록을 실시간 구독한다. 왼쪽 '채팅 기록' 패널에 사용.
@@ -159,13 +169,15 @@ export const subscribeStudentConversations = (
         return {
           id: docSnapshot.id,
           category: String(data.category ?? '') as CategoryId,
+          title: String(data.title ?? ''),
           lastMessage: String(data.lastMessage ?? ''),
           lastMessageAt: toMillis(data.lastMessageAt),
           needsHuman: Boolean(data.needsHuman),
+          hiddenForStudent: Boolean(data.hiddenForStudent),
         }
       })
-      // 아직 아무 메시지도 없는 빈 대화는 목록에서 숨긴다.
-      .filter((item) => item.lastMessage.trim().length > 0)
+      // 아직 아무 메시지도 없는 빈 대화, 학생이 기록에서 지운 대화는 목록에서 숨긴다.
+      .filter((item) => item.lastMessage.trim().length > 0 && !item.hiddenForStudent)
       .sort((a, b) => b.lastMessageAt - a.lastMessageAt)
     onChange(items)
   })
@@ -219,6 +231,46 @@ export const setConversationCategory = async (
     await setDoc(doc(firestore, 'conversations', conversationId), { category }, { merge: true })
   } catch (error) {
     console.warn('대화 분류 저장에 실패했습니다.', error)
+  }
+}
+
+// 채팅 기록 초기화: 학생 목록에서만 감춘다(hiddenForStudent).
+// 상담사 대화까지 실제로 삭제하면 관리자 쪽 상담 이력이 사라지고, 규칙상 delete도 관리자 전용이다.
+export const clearStudentConversations = async (conversationIds: string[]): Promise<void> => {
+  if (!firestore || conversationIds.length === 0) return
+  try {
+    // 배치 한 번의 상한(500)에 맞춰 나눠 쓴다.
+    for (let index = 0; index < conversationIds.length; index += 400) {
+      const batch = writeBatch(firestore)
+      for (const conversationId of conversationIds.slice(index, index + 400)) {
+        batch.update(doc(firestore, 'conversations', conversationId), { hiddenForStudent: true })
+      }
+      await batch.commit()
+    }
+  } catch (error) {
+    console.warn('채팅 기록 초기화에 실패했습니다.', error)
+  }
+}
+
+// 대화 제목은 학생이 처음 보낸 질문으로 만든다. 너무 길면 잘라 목록에서 한 줄로 보이게 한다.
+export const CONVERSATION_TITLE_MAX = 40
+
+export const buildConversationTitle = (text: string): string => {
+  const normalized = text.replace(/\s+/g, ' ').trim()
+  if (normalized.length <= CONVERSATION_TITLE_MAX) return normalized
+  return `${normalized.slice(0, CONVERSATION_TITLE_MAX).trimEnd()}…`
+}
+
+// 첫 질문을 대화 제목으로 저장한다(채팅 기록 목록·채팅 헤더에 표시).
+export const setConversationTitle = async (
+  conversationId: string,
+  title: string,
+): Promise<void> => {
+  if (!firestore || !title) return
+  try {
+    await setDoc(doc(firestore, 'conversations', conversationId), { title }, { merge: true })
+  } catch (error) {
+    console.warn('대화 제목 저장에 실패했습니다.', error)
   }
 }
 
