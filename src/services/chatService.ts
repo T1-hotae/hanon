@@ -11,6 +11,7 @@ import {
   setDoc,
   Timestamp,
   updateDoc,
+  where,
 } from 'firebase/firestore'
 import type { CategoryId, ChatMessage } from '../types/academic'
 import type { StudentIdentity } from '../utils/studentIdentity'

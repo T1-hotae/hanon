@@ -1409,36 +1409,317 @@
   background: #6b5d4f;
 }
 
-.modalActions .modalActionPrimary {
-  background: var(--color-primary);
+/* 카테고리 카드에서 여는 '신청 전 체크리스트' 모달
+   헤더(아이콘+제목) / 진행률 / 스크롤되는 본문 / 하단 액션 4단 구성 */
+.checklistBackdrop {
+  animation: checklistBackdropIn 160ms ease;
 }
 
-.modalActions .modalActionPrimary:hover {
-  background: var(--color-primary-hover);
+.modal.checklistModal {
+  animation: checklistModalIn 200ms ease;
+  display: flex;
+  flex-direction: column;
+  max-height: min(660px, calc(100vh - 48px));
+  max-width: 540px;
+  overflow: hidden;
+  padding: 0;
 }
 
-/* 카테고리 카드에서 여는 '신청 전 체크리스트' 모달 */
-.checklistModal {
-  max-height: calc(100vh - 80px);
-  max-width: 520px;
-  overflow-y: auto;
+.checklistModalHeader {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  gap: 14px;
+  padding: 20px 22px 16px;
 }
 
-.checklistModal h2 {
-  font-size: 20px;
+.checklistModalIcon {
+  align-items: center;
+  background: var(--color-accent-soft);
+  border-radius: 999px;
+  color: var(--color-accent);
+  display: inline-flex;
+  flex: none;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
+.checklistModalIcon svg {
+  height: 30px;
+  width: 30px;
+}
+
+.checklistModalHeading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.checklistModalEyebrow {
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0 0 2px;
+}
+
+.checklistModalHeading h2 {
+  font-size: 19px;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
-.checklistModal .modalActions {
-  flex-wrap: wrap;
-  justify-content: flex-end;
+.checklistModalClose {
+  align-items: center;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  transition: background-color var(--transition), border-color var(--transition), color var(--transition);
+  width: 32px;
 }
 
-.checklistModalCategory {
+.checklistModalClose:hover {
+  background: var(--color-accent-soft);
+  border-color: var(--color-primary);
   color: var(--color-primary);
-  font-size: 14px;
+}
+
+.checklistProgress {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  padding: 14px 22px 0;
+}
+
+.checklistProgressTrack {
+  background: var(--color-border);
+  border-radius: 999px;
+  display: block;
+  flex: 1 1 auto;
+  height: 6px;
+  overflow: hidden;
+}
+
+.checklistProgressFill {
+  background: var(--color-accent);
+  border-radius: 999px;
+  display: block;
+  height: 100%;
+  transition: width var(--transition);
+}
+
+.checklistProgressText {
+  color: var(--color-text-muted);
+  flex: none;
+  font-size: 12px;
   font-weight: 700;
-  margin: 6px 0 16px;
+}
+
+.checklistModalBody {
+  overflow-y: auto;
+  padding: 10px 14px 16px;
+}
+
+.checklistToggleList {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.checklistToggleList li + li .checklistToggle {
+  border-top: 1px solid var(--color-border);
+}
+
+.checklistToggle {
+  align-items: flex-start;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 12px;
+  padding: 12px;
+  text-align: left;
+  transition: background-color var(--transition);
+  width: 100%;
+}
+
+.checklistToggle:hover {
+  background: var(--color-accent-soft);
+}
+
+.checklistToggleBox {
+  align-items: center;
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  border-radius: 6px;
+  color: transparent;
+  display: inline-flex;
+  flex: none;
+  height: 20px;
+  justify-content: center;
+  margin-top: 1px;
+  transition: background-color var(--transition), color var(--transition);
+  width: 20px;
+}
+
+.checklistToggleChecked .checklistToggleBox {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.checklistToggleText {
+  display: block;
+  min-width: 0;
+}
+
+.checklistToggleText strong {
+  color: var(--color-text);
+  display: block;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.checklistToggleText span {
+  color: var(--color-text-muted);
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.checklistToggleChecked .checklistToggleText strong {
+  color: var(--color-text-muted);
+}
+
+.checklistModalEmpty {
+  background: var(--color-bg);
+  border: 1px dashed #d8cbbb;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 8px;
+  padding: 22px 18px;
+  text-align: center;
+}
+
+.checklistModalFooter {
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 14px 22px 18px;
+}
+
+.checklistModalFooter button {
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 11px 18px;
+  transition: background-color var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.checklistModalFooter .checklistGhostButton {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  padding: 10px 17px;
+}
+
+.checklistModalFooter .checklistGhostButton:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.checklistModalFooter .checklistPrimaryButton {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.checklistModalFooter .checklistPrimaryButton:hover {
+  background: var(--color-primary-hover);
+}
+
+@keyframes checklistBackdropIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes checklistModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 좁은 화면에서는 하단 시트 형태로 붙인다 */
+@media (max-width: 520px) {
+  .checklistBackdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal.checklistModal {
+    animation: checklistSheetIn 200ms ease;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    max-height: 86vh;
+  }
+
+  .checklistModalHeader,
+  .checklistProgress,
+  .checklistModalFooter {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .checklistModalBody {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .checklistModalFooter button {
+    flex: 1 1 auto;
+  }
+}
+
+@keyframes checklistSheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checklistBackdrop,
+  .modal.checklistModal {
+    animation: none;
+  }
 }
 
 .emptyState {

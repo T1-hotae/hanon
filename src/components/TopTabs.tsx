@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { primaryCategories } from '../constants'
 import { useAcademicData } from '../context/useAcademicData'
@@ -9,6 +9,18 @@ import styles from '../App.module.css'
 // 한 페이지에 보여줄 카테고리 카드 수
 const PAGE_SIZE = 4
 
+const CheckMark = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+    <path d="m2.6 6.9 2.6 2.6 5.2-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" />
+  </svg>
+)
+
+const CloseMark = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <path d="m3.5 3.5 7 7M10.5 3.5l-7 7" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+  </svg>
+)
+
 // 홈 히어로 아래의 카테고리 카드 그리드.
 // 카드를 누르면 먼저 '신청 전 체크리스트' 모달을 띄우고, 모달에서 AI 채팅 페이지로 이동한다.
 // 카테고리가 4개를 넘으면 < > 화살표로 페이지를 넘겨 볼 수 있다.
@@ -18,15 +30,29 @@ export function TopTabs() {
   const cards = primaryCategories(categories)
   const [page, setPage] = useState(0)
   const [openCategory, setOpenCategory] = useState<Category | null>(null)
+  // 학생이 직접 눌러 체크한 항목(모달을 닫으면 초기화된다)
+  const [checkedIds, setCheckedIds] = useState<string[]>([])
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const lastFocusedRef = useRef<HTMLElement | null>(null)
 
-  // 모달이 열려 있을 때 Esc로 닫기
+  // 모달이 열려 있는 동안: Esc로 닫기, 배경 스크롤 잠금, 포커스 이동/복원
   useEffect(() => {
     if (!openCategory) return
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpenCategory(null)
     }
+    const previousOverflow = document.body.style.overflow
+
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    document.body.style.overflow = 'hidden'
+    closeButtonRef.current?.focus()
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = previousOverflow
+      lastFocusedRef.current?.focus()
+    }
   }, [openCategory])
 
   if (cards.length === 0) return null
@@ -39,12 +65,22 @@ export function TopTabs() {
   const goPrev = () => setPage((p) => Math.max(0, p - 1))
   const goNext = () => setPage((p) => Math.min(pageCount - 1, p + 1))
 
-  const openChecklist = openCategory
-    ? checklists.find((checklist) => checklist.category === openCategory.id)
+  const openModal = (category: Category) => {
+    lastFocusedRef.current = document.activeElement as HTMLElement | null
+    setCheckedIds([])
+    setOpenCategory(category)
+  }
+
+  const checklist = openCategory
+    ? checklists.find((item) => item.category === openCategory.id)
     : undefined
-  const checklistItems = openChecklist
-    ? [...openChecklist.items].sort((a, b) => a.order - b.order)
-    : []
+  const items = checklist ? [...checklist.items].sort((a, b) => a.order - b.order) : []
+  const checkedCount = items.filter((item) => checkedIds.includes(item.id)).length
+  const progress = items.length ? Math.round((checkedCount / items.length) * 100) : 0
+  const allChecked = items.length > 0 && checkedCount === items.length
+
+  const toggleItem = (id: string) =>
+    setCheckedIds((prev) => (prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id]))
 
   const goToChat = () => {
     if (!openCategory) return
@@ -74,7 +110,7 @@ export function TopTabs() {
               type="button"
               key={category.id}
               className={styles.categoryCard}
-              onClick={() => setOpenCategory(category)}
+              onClick={() => openModal(category)}
             >
               <span className={styles.categoryCardIcon} aria-hidden="true">
                 <CategoryIcon category={category} />
@@ -99,47 +135,102 @@ export function TopTabs() {
       </div>
 
       {openCategory && (
+        // 배경(백드롭) 클릭으로 닫고, 모달 내부 클릭은 전파를 막는다.
         <div
-          className={styles.modalBackdrop}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${openCategory.label} 신청 전 체크리스트`}
+          className={`${styles.modalBackdrop} ${styles.checklistBackdrop}`}
+          role="presentation"
           onClick={() => setOpenCategory(null)}
         >
-          {/* 배경 클릭으로만 닫히도록 모달 내부 클릭은 전파를 막는다 */}
           <div
             className={`${styles.modal} ${styles.checklistModal}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="checklistModalTitle"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2>신청 전 체크리스트</h2>
-            <p className={styles.checklistModalCategory}>{openCategory.label}</p>
+            <header className={styles.checklistModalHeader}>
+              <span className={styles.checklistModalIcon} aria-hidden="true">
+                <CategoryIcon category={openCategory} />
+              </span>
+              <div className={styles.checklistModalHeading}>
+                <p className={styles.checklistModalEyebrow}>{openCategory.label}</p>
+                <h2 id="checklistModalTitle">신청 전 체크리스트</h2>
+              </div>
+              <button
+                ref={closeButtonRef}
+                type="button"
+                className={styles.checklistModalClose}
+                onClick={() => setOpenCategory(null)}
+                aria-label="닫기"
+              >
+                <CloseMark />
+              </button>
+            </header>
 
-            {checklistItems.length > 0 ? (
-              <ul className={styles.checklistList}>
-                {checklistItems.map((item) => (
-                  <li key={item.id} className={styles.checklistRow}>
-                    <span className={styles.checklistBox} aria-hidden="true" />
-                    <div>
-                      <strong>{item.label}</strong>
-                      <p>{item.content}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className={styles.contactHours}>
-                아직 등록된 체크리스트가 없어요. AI에게 바로 물어보세요.
-              </p>
+            {items.length > 0 && (
+              <div className={styles.checklistProgress}>
+                <span
+                  className={styles.checklistProgressTrack}
+                  role="progressbar"
+                  aria-label="체크 진행률"
+                  aria-valuemin={0}
+                  aria-valuemax={items.length}
+                  aria-valuenow={checkedCount}
+                >
+                  <span className={styles.checklistProgressFill} style={{ width: `${progress}%` }} />
+                </span>
+                <span className={styles.checklistProgressText}>
+                  {allChecked ? '모두 확인 완료' : `${checkedCount}/${items.length} 확인`}
+                </span>
+              </div>
             )}
 
-            <div className={styles.modalActions}>
-              <button type="button" onClick={() => setOpenCategory(null)}>
+            <div className={styles.checklistModalBody}>
+              {items.length > 0 ? (
+                <ul className={styles.checklistToggleList}>
+                  {items.map((item) => {
+                    const checked = checkedIds.includes(item.id)
+                    return (
+                      <li key={item.id}>
+                        <button
+                          type="button"
+                          className={`${styles.checklistToggle} ${checked ? styles.checklistToggleChecked : ''}`}
+                          onClick={() => toggleItem(item.id)}
+                          aria-pressed={checked}
+                        >
+                          <span className={styles.checklistToggleBox} aria-hidden="true">
+                            <CheckMark />
+                          </span>
+                          <span className={styles.checklistToggleText}>
+                            <strong>{item.label}</strong>
+                            <span>{item.content}</span>
+                          </span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : (
+                <p className={styles.checklistModalEmpty}>
+                  아직 등록된 체크리스트가 없어요.
+                  <br />
+                  문무니 AI에게 바로 물어보세요.
+                </p>
+              )}
+            </div>
+
+            <footer className={styles.checklistModalFooter}>
+              <button
+                type="button"
+                className={styles.checklistGhostButton}
+                onClick={() => setOpenCategory(null)}
+              >
                 닫기
               </button>
-              <button type="button" className={styles.modalActionPrimary} onClick={goToChat}>
+              <button type="button" className={styles.checklistPrimaryButton} onClick={goToChat}>
                 AI에게 물어보기
               </button>
-            </div>
+            </footer>
           </div>
         </div>
       )}
