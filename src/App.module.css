@@ -1409,6 +1409,38 @@
   background: #6b5d4f;
 }
 
+.modalActions .modalActionPrimary {
+  background: var(--color-primary);
+}
+
+.modalActions .modalActionPrimary:hover {
+  background: var(--color-primary-hover);
+}
+
+/* 카테고리 카드에서 여는 '신청 전 체크리스트' 모달 */
+.checklistModal {
+  max-height: calc(100vh - 80px);
+  max-width: 520px;
+  overflow-y: auto;
+}
+
+.checklistModal h2 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.checklistModal .modalActions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.checklistModalCategory {
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 700;
+  margin: 6px 0 16px;
+}
+
 .emptyState {
   background: var(--color-bg);
   border: 1px dashed #d8cbbb;
