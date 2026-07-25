@@ -2261,7 +2261,39 @@ mark {
 
 .chatIdentityForm {
   display: grid;
-  gap: 10px;
+  gap: 4px;
+}
+
+.chatIdentityField {
+  display: grid;
+  gap: 0;
+}
+
+/* 오류·경고 문구 자리. 문구가 없어도 높이가 흔들리지 않게 여백만 유지한다. */
+.fieldMessage {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+  min-height: 18px;
+  padding: 0 16px;
+}
+
+.fieldError {
+  color: #c0392b;
+  font-weight: 600;
+}
+
+.fieldWarning {
+  color: var(--color-text-muted);
+}
+
+.chatIdentityForm input[aria-invalid='true'] {
+  border-color: #c0392b;
+}
+
+.chatIdentityForm input[aria-invalid='true']:focus {
+  border-color: #c0392b;
+  box-shadow: 0 0 0 3px rgb(192 57 43 / 12%);
 }
 
 .chatIdentityForm input {

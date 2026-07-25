@@ -3,6 +3,7 @@ import {
   getCategories,
   getChecklists,
   getContacts,
+  getDepartments,
   getFaqEntries,
   getInitialNotices,
   isFirestoreConfigured,
@@ -13,6 +14,7 @@ import type {
   Category,
   Checklist,
   Contact,
+  Department,
   FaqEntry,
   Notice,
 } from '../types/academic'
@@ -22,6 +24,7 @@ export const AcademicDataProvider = ({ children }: { children: ReactNode }) => {
   const [faqEntries, setFaqEntries] = useState<FaqEntry[]>([])
   const [checklists, setChecklists] = useState<Checklist[]>([])
   const [contacts, setContacts] = useState<Contact[]>([])
+  const [departments, setDepartments] = useState<Department[]>([])
   const [notices, setNotices] = useState<Notice[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -34,6 +37,7 @@ export const AcademicDataProvider = ({ children }: { children: ReactNode }) => {
       getFaqEntries(),
       getChecklists(),
       getContacts(),
+      getDepartments(),
       getInitialNotices(),
     ])
       .then(([
@@ -41,12 +45,14 @@ export const AcademicDataProvider = ({ children }: { children: ReactNode }) => {
         initialFaqEntries,
         initialChecklists,
         initialContacts,
+        initialDepartments,
         initialNotices,
       ]) => {
         setCategories(initialCategories)
         setFaqEntries(initialFaqEntries)
         setChecklists(initialChecklists)
         setContacts(initialContacts)
+        setDepartments(initialDepartments)
         setNotices(initialNotices)
       })
       .finally(() => setLoading(false))
@@ -58,11 +64,12 @@ export const AcademicDataProvider = ({ children }: { children: ReactNode }) => {
       faqEntries,
       checklists,
       contacts,
+      departments,
       notices,
       loading,
       firebaseUnavailable: !isFirestoreConfigured(),
     }),
-    [categories, checklists, contacts, faqEntries, loading, notices],
+    [categories, checklists, contacts, departments, faqEntries, loading, notices],
   )
 
   return (

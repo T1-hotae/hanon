@@ -40,6 +40,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // 학과 목록. 상담사 연결 폼의 선택지로 쓰이므로 공개 읽기.
+    match /departments/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /notices/{noticeId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -63,16 +69,41 @@ service cloud.firestore {
         return signedIn() && resource.data.studentId == request.auth.uid;
       }
 
+      // 학생 식별정보 규칙(클라이언트 검증과 짝을 이루는 서버측 최소 방어선).
+      // 학번은 숫자 9자리, 이름·학과는 길이만 확인한다(한글 문자클래스는 규칙에서 쓰지 않는다).
+      function identityFields() {
+        return ['studentName', 'studentNumber', 'studentDepartment', 'studentDepartmentId'];
+      }
+
+      function identityFilled(d) {
+        return d.studentNumber.matches('^[0-9]{9}$')
+          && d.studentName.size() >= 2 && d.studentName.size() <= 30
+          && d.studentDepartment.size() >= 2 && d.studentDepartment.size() <= 30;
+      }
+
+      // 대화 시작 시점(AI 상담)에는 식별정보가 비어 있는 것이 정상이다.
+      function identityBlank(d) {
+        return d.studentName == '' && d.studentNumber == '' && d.studentDepartment == '';
+      }
+
       allow create: if signedIn()
         && request.resource.data.studentId == request.auth.uid
         && request.resource.data.status == 'open'
         && request.resource.data.studentName is string
-        && request.resource.data.studentNumber is string;
+        && request.resource.data.studentNumber is string
+        && request.resource.data.studentDepartment is string
+        && (identityBlank(request.resource.data) || identityFilled(request.resource.data));
       // 상담사(관리자)는 상담사 연결을 요청한 대화(needsHuman == true)만 읽을 수 있다.
       // AI 상담(needsHuman == false)은 DB 수준에서 상담사에게 노출되지 않는다.
       // (규칙은 필터가 아니므로, 관리자 앱 쿼리도 where('needsHuman','==',true)로 맞춰야 한다.)
       allow read: if (isAdmin() && resource.data.needsHuman == true) || ownsConversation();
-      allow update: if isAdmin() || ownsConversation();
+      // 학생이 식별정보를 바꾸는 경우(= 상담사 연결)에만 형식을 강제한다.
+      // 읽음 처리·메시지 메타 갱신 등 식별정보를 건드리지 않는 update는 그대로 통과한다.
+      allow update: if isAdmin()
+        || (ownsConversation() && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(identityFields())
+          || identityFilled(request.resource.data)
+        ));
       allow delete: if isAdmin();
 
       match /messages/{messageId} {

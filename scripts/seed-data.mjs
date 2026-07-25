@@ -147,3 +147,29 @@ export const contacts = [
   // 전산·시스템
   contact('c-helpdesk', '전산유지보수 헬프데스크', '종합정보시스템·수강신청 시스템 문의', 3119, '전산·시스템', ['course', 'etc'], 1, 28),
 ]
+
+// 상담사 연결 폼의 학과 선택지(Firestore `departments`).
+// ⚠ 아래 목록은 초안입니다. 학교 홈페이지의 실제 학부·학과 명칭으로 확인·수정하세요.
+//    관리자 앱/콘솔에서 추가·수정해도 되며, 학생 웹은 항상 Firestore 값을 그대로 씁니다.
+// aliases: 학생이 줄임말로 입력해도 매칭되도록 하는 별칭(대소문자·공백·괄호는 무시하고 비교).
+const department = (id, label, aliases, order) => ({ id, label, aliases, order })
+
+export const departments = [
+  department('ict-convergence', 'ICT융합공학부', ['ict', 'ict융합', 'ict융합공학과', '아이씨티융합공학부'], 1),
+  department('software', '소프트웨어응용학부', ['sw', '소프트웨어', '소프트웨어응용학과', '소웨'], 2),
+  department('ai-convergence', '인공지능융합공학부', ['ai', '인공지능', '인공지능융합공학과'], 3),
+  department('industrial-data', '산업데이터사이언스학부', ['산업데이터', '데이터사이언스', '산디사'], 4),
+  department('social-welfare', '사회복지학부', ['사복', '사회복지', '사회복지학과'], 5),
+  department('silver-industry', '실버산업학과', ['실버', '실버산업'], 6),
+  department('early-childhood', '유아교육과', ['유아교육', '유교과'], 7),
+  department('special-edu-elementary', '초등특수교육과', ['초등특수', '초특'], 8),
+  department('special-edu-secondary', '중등특수교육과', ['중등특수', '중특'], 9),
+  department('business', '경영학부', ['경영', '경영학과'], 10),
+  department('tax', '세무학과', ['세무'], 11),
+  department('real-estate', '부동산건설학부', ['부동산', '부동산학과', '건설'], 12),
+  department('public-affairs', '공공인재학과', ['공공인재', '행정', '행정학과'], 13),
+  department('global-culture', '글로벌문화학부', ['글로벌문화', '글문'], 14),
+  department('christian-studies', '기독교학과', ['기독교', '신학', '신학과'], 15),
+  // 목록에서 자기 학과를 찾지 못한 학생용 항목. 지우지 마세요.
+  department('etc', '기타', ['해당없음', '기타학과'], 999),
+]

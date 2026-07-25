@@ -13,6 +13,7 @@ import {
   updateDoc,
 } from 'firebase/firestore'
 import type { CategoryId, ChatMessage } from '../types/academic'
+import type { StudentIdentity } from '../utils/studentIdentity'
 import { firebaseAuth, firestore } from './firebase'
 
 export type AiAnswer = {
@@ -54,21 +55,18 @@ export const ensureAnonymousAuth = async (): Promise<string | null> => {
 }
 
 // 새 대화 생성. Firestore 미설정 시 로컬 임시 id를 반환한다.
-export const createConversation = async (
-  category: CategoryId,
-  studentName: string,
-  studentNumber: string,
-  studentDepartment: string,
-): Promise<string | null> => {
+// 학생 식별정보(학번·학과·이름)는 이 시점에 받지 않고, '상담사 연결' 시 escalateToHuman에서 채운다.
+export const createConversation = async (category: CategoryId): Promise<string | null> => {
   if (!firestore) return null
   const studentId = await ensureAnonymousAuth()
   if (!studentId) return null
 
   const ref = await addDoc(collection(firestore, 'conversations'), {
     studentId,
-    studentName,
-    studentNumber,
-    studentDepartment,
+    studentName: '',
+    studentNumber: '',
+    studentDepartment: '',
+    studentDepartmentId: '',
     category,
     status: 'open',
     lastMessage: '',
@@ -149,7 +147,7 @@ export const markConversationReadByStudent = async (conversationId: string): Pro
 // AI 대화에서 승격할 때는 학생 식별정보(학번·학과·이름)를 함께 병합해 관리자에게 전달한다.
 export const escalateToHuman = async (
   conversationId: string,
-  identity?: { studentName: string; studentNumber: string; studentDepartment: string },
+  identity?: StudentIdentity,
 ): Promise<void> => {
   if (!firestore) return
   try {

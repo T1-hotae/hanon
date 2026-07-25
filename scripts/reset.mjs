@@ -18,6 +18,7 @@ const collections = [
   'keywordPresets',
   'faqEntries',
   'checklists',
+  'departments',
   'notices',
   'inquiries',
   'conversations',

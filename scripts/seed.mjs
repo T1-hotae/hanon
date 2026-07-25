@@ -3,7 +3,7 @@
 // ADC 설정 없이 .env + 관리자 로그인으로 넣으려면 `npm run seed:web`을 사용하세요.
 import admin from 'firebase-admin'
 import { readEnv } from './read-env.mjs'
-import { categories, checklists, notices, faqEntries, contacts } from './seed-data.mjs'
+import { categories, checklists, notices, faqEntries, contacts, departments } from './seed-data.mjs'
 
 const env = readEnv()
 const projectId = process.env.FIREBASE_PROJECT_ID ?? env.VITE_FIREBASE_PROJECT_ID
@@ -41,3 +41,4 @@ await upsertAll('checklists', checklists)
 await upsertAll('notices', notices)
 await upsertAll('faqEntries', faqEntries)
 await upsertAll('contacts', contacts)
+await upsertAll('departments', departments)

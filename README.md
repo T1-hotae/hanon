@@ -66,8 +66,29 @@ npm run seed              # 기본 카테고리/예시질문/체크리스트/공
 
 `firestore.rules`를 Firebase 콘솔 또는 Firebase CLI로 배포하세요.
 
-- `categories`, `keywordPresets`, `faqEntries`, `checklists`, `notices`: 공개 읽기, 로그인 사용자만 쓰기
+- `categories`, `keywordPresets`, `faqEntries`, `checklists`, `notices`, `departments`: 공개 읽기, 로그인 사용자만 쓰기
 - `inquiries`: 학생은 `pending` 문의 생성만 가능, 읽기/수정/삭제는 로그인 사용자만 가능
+- `conversations`: 학생이 식별정보(학번·학과·이름)를 쓸 때 형식을 검증한다(아래 "학생 식별정보 규칙")
+
+## 학생 식별정보 규칙 (학번·학과·이름)
+
+'상담사 연결' 시 받는 학번·학과·이름의 정제/검증 규칙은 [`src/utils/studentIdentity.ts`](src/utils/studentIdentity.ts) 한 곳에 모여 있습니다. 화면(`ChatPage`)과 저장(`chatService`)이 모두 이 파일만 사용합니다.
+
+| 필드 | 규칙 | 자동 정제 |
+| --- | --- | --- |
+| 학번 | 숫자 9자리(예: `202104390`). 앞 4자리 입학연도가 1990 이전이거나 내년 이후면 **경고만** 표시(편입·재입학 예외를 막지 않기 위해 제출은 허용) | 하이픈·공백·전각숫자(`２`) 제거 후 9자리까지 |
+| 학과 | Firestore `departments` 목록에 있는 학과만. 목록이 비어 있으면(미시드) 2~30자 자유 입력으로 자동 완화 | 별칭·공백·대소문자 무시 매칭 → **정식 명칭 + 표준 id**로 저장 |
+| 이름 | 한글 2~6자 또는 영문 2~30자. 미완성 한글(`ㅎㅗㅌㅐ`)·숫자·특수문자 차단 | 앞뒤 공백 제거, 연속 공백 1칸 |
+
+- 학번 자릿수를 바꾸려면 `studentIdentity.ts`의 `STUDENT_NUMBER_LENGTH`와 `firestore.rules`의 `identityFilled()` 정규식을 함께 수정하세요.
+- 학과 목록은 `scripts/seed-data.mjs`의 `departments` 배열로 시드되며, **초안이므로 실제 학부·학과 명칭으로 확인·수정이 필요합니다.** 이후에는 Firebase 콘솔/관리자 앱에서 직접 수정해도 됩니다. `aliases`에 줄임말(`ict`, `사복` 등)을 넣어두면 학생이 줄여 입력해도 매칭됩니다.
+- 목록에서 자기 학과를 찾지 못한 학생을 위해 `기타` 항목을 남겨 두세요.
+- 브라우저 검증은 우회될 수 있으므로 `firestore.rules`에서 한 번 더 검사합니다. 규칙을 배포해야 실제로 적용됩니다.
+
+```bash
+firebase deploy --only firestore:rules
+npm run seed:web   # departments 컬렉션 시드(또는 npm run seed)
+```
 
 ## 관리자 앱
 

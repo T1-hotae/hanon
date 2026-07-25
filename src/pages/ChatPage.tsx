@@ -15,6 +15,15 @@ import {
 import { createChatInquiry } from '../services/inquiryService'
 import { detectCategory } from '../constants'
 import { getCategory, type CategoryId, type ChatMessage } from '../types/academic'
+import {
+  normalizeStudentNumber,
+  resolveStudentIdentity,
+  studentNumberWarning,
+  validateIdentityField,
+  type IdentityErrors,
+  type IdentityField,
+  STUDENT_NUMBER_LENGTH,
+} from '../utils/studentIdentity'
 import munmuniMascot from '../assets/munmuni-mascot.png'
 import styles from '../App.module.css'
 
@@ -58,7 +67,7 @@ const senderLabel = (from: ChatMessage['from']): string | null => {
 }
 
 export function ChatPage() {
-  const { categories, checklists, contacts, faqEntries, notices } = useAcademicData()
+  const { categories, checklists, contacts, departments, faqEntries, notices } = useAcademicData()
   const [searchParams, setSearchParams] = useSearchParams()
 
   // 모든 대화는 AI로 시작하고, '상담사 연결'로 관리자 문의(human)로 승격한다.
@@ -67,6 +76,8 @@ export function ChatPage() {
   const [studentName, setStudentName] = useState('')
   const [studentNumber, setStudentNumber] = useState('')
   const [studentDepartment, setStudentDepartment] = useState('')
+  // 필드별 오류 문구. 입력 중이 아니라 blur/제출 시점에만 채운다.
+  const [identityErrors, setIdentityErrors] = useState<IdentityErrors>({})
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [customText, setCustomText] = useState('')
@@ -97,8 +108,9 @@ export function ChatPage() {
     setStudentName('')
     setStudentNumber('')
     setStudentDepartment('')
+    setIdentityErrors({})
     setCategory(cat)
-    const convId = await createConversation(cat, '', '', '')
+    const convId = await createConversation(cat)
     const nextId = convId ?? LOCAL
     setConversationId(nextId)
     setMessages([])
@@ -279,22 +291,33 @@ export function ChatPage() {
     setStudentName('')
     setStudentNumber('')
     setStudentDepartment('')
+    setIdentityErrors({})
     setEscalateOpen(true)
   }
 
+  // 입력 중에는 오류를 지우고, 포커스가 빠질 때(blur) 그 필드만 검증한다.
+  const clearFieldError = (field: IdentityField) =>
+    setIdentityErrors((current) => ({ ...current, [field]: undefined }))
+
+  const checkField = (field: IdentityField, value: string) =>
+    setIdentityErrors((current) => ({
+      ...current,
+      [field]: validateIdentityField(field, value, departments),
+    }))
+
   const submitEscalation = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!conversationId || conversationId === LOCAL || !category) return
-    const name = studentName.trim()
-    const number = studentNumber.trim()
-    const department = studentDepartment.trim()
-    if (!name || !number || !department || starting) return
+    if (!conversationId || conversationId === LOCAL || !category || starting) return
+
+    const { ok, errors, value } = resolveStudentIdentity(
+      { studentName, studentNumber, studentDepartment },
+      departments,
+    )
+    setIdentityErrors(errors)
+    if (!ok) return
+
     setStarting(true)
-    await escalateToHuman(conversationId, {
-      studentName: name,
-      studentNumber: number,
-      studentDepartment: department,
-    })
+    await escalateToHuman(conversationId, value)
     await sendStudentMessage(conversationId, 'bot', '상담사에게 연결했어요. 확인 후 순차적으로 답변드립니다.')
     setMode('human')
     saveSession({ conversationId, category, mode: 'human', inquiryLogged: inquiryLoggedRef.current })
@@ -306,6 +329,9 @@ export function ChatPage() {
     event.preventDefault()
     void send(customText)
   }
+
+  // 형식은 맞지만 입학연도(앞 4자리)가 어색한 학번은 경고만 하고 제출은 막지 않는다.
+  const numberWarning = studentNumberWarning(studentNumber)
 
   // AI 상담 추천 질문 = 해당 카테고리 FAQ 질문
   const categoryQuestions = category
@@ -482,26 +508,86 @@ export function ChatPage() {
             <p className={styles.contactHours}>
               상담사 연결 전 학번, 학과, 이름을 알려주세요. 상담사가 확인 후 답변드립니다.
             </p>
-            <form className={styles.chatIdentityForm} onSubmit={submitEscalation}>
-              <input
-                value={studentNumber}
-                onChange={(event) => setStudentNumber(event.target.value)}
-                placeholder="학번"
-                aria-label="학번"
-                autoFocus
-              />
-              <input
-                value={studentDepartment}
-                onChange={(event) => setStudentDepartment(event.target.value)}
-                placeholder="학과"
-                aria-label="학과"
-              />
-              <input
-                value={studentName}
-                onChange={(event) => setStudentName(event.target.value)}
-                placeholder="이름"
-                aria-label="이름"
-              />
+            <form className={styles.chatIdentityForm} onSubmit={submitEscalation} noValidate>
+              <div className={styles.chatIdentityField}>
+                <input
+                  value={studentNumber}
+                  // 숫자만 남기고 최대 자릿수까지만 받는다(하이픈·공백·전각숫자 입력 허용).
+                  onChange={(event) => {
+                    setStudentNumber(normalizeStudentNumber(event.target.value))
+                    clearFieldError('studentNumber')
+                  }}
+                  onBlur={(event) => checkField('studentNumber', event.target.value)}
+                  placeholder={`학번 (숫자 ${STUDENT_NUMBER_LENGTH}자리)`}
+                  aria-label="학번"
+                  aria-invalid={Boolean(identityErrors.studentNumber)}
+                  aria-describedby="escalate-number-help"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={STUDENT_NUMBER_LENGTH}
+                  autoFocus
+                />
+                <p id="escalate-number-help" className={styles.fieldMessage}>
+                  {identityErrors.studentNumber ? (
+                    <span className={styles.fieldError}>{identityErrors.studentNumber}</span>
+                  ) : (
+                    numberWarning && <span className={styles.fieldWarning}>{numberWarning}</span>
+                  )}
+                </p>
+              </div>
+
+              <div className={styles.chatIdentityField}>
+                <input
+                  value={studentDepartment}
+                  onChange={(event) => {
+                    setStudentDepartment(event.target.value)
+                    clearFieldError('studentDepartment')
+                  }}
+                  onBlur={(event) => checkField('studentDepartment', event.target.value)}
+                  placeholder={departments.length > 0 ? '학과 (목록에서 선택)' : '학과'}
+                  aria-label="학과"
+                  aria-invalid={Boolean(identityErrors.studentDepartment)}
+                  aria-describedby="escalate-department-help"
+                  list={departments.length > 0 ? 'escalate-departments' : undefined}
+                  autoComplete="off"
+                  maxLength={30}
+                />
+                {departments.length > 0 && (
+                  <datalist id="escalate-departments">
+                    {departments.map((department) => (
+                      <option key={department.id} value={department.label} />
+                    ))}
+                  </datalist>
+                )}
+                <p id="escalate-department-help" className={styles.fieldMessage}>
+                  {identityErrors.studentDepartment && (
+                    <span className={styles.fieldError}>{identityErrors.studentDepartment}</span>
+                  )}
+                </p>
+              </div>
+
+              <div className={styles.chatIdentityField}>
+                <input
+                  value={studentName}
+                  onChange={(event) => {
+                    setStudentName(event.target.value)
+                    clearFieldError('studentName')
+                  }}
+                  onBlur={(event) => checkField('studentName', event.target.value)}
+                  placeholder="이름"
+                  aria-label="이름"
+                  aria-invalid={Boolean(identityErrors.studentName)}
+                  aria-describedby="escalate-name-help"
+                  autoComplete="off"
+                  maxLength={30}
+                />
+                <p id="escalate-name-help" className={styles.fieldMessage}>
+                  {identityErrors.studentName && (
+                    <span className={styles.fieldError}>{identityErrors.studentName}</span>
+                  )}
+                </p>
+              </div>
+
               <div className={styles.modalActions}>
                 <button type="button" onClick={() => setEscalateOpen(false)}>
                   취소

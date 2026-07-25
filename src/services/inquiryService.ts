@@ -18,6 +18,7 @@ import {
   type CategoryId,
   type Checklist,
   type Contact,
+  type Department,
   type FaqEntry,
   type Notice,
 } from '../types/academic'
@@ -119,6 +120,18 @@ export const getContacts = () =>
       group: String(data.group ?? '기타'),
       categories: Array.isArray(data.categories) ? data.categories.map(String) : [],
       priority: Number(data.priority ?? 2),
+      order: Number(data.order ?? 999),
+    }
+  })
+
+// 학과 목록. 비어 있으면(미시드) 상담사 연결 폼은 학과 자유 입력으로 동작한다.
+export const getDepartments = () =>
+  readCollection<Department>('departments', [], (snapshot) => {
+    const data = snapshot.data()
+    return {
+      id: String(data.id ?? snapshot.id),
+      label: String(data.label ?? ''),
+      aliases: Array.isArray(data.aliases) ? data.aliases.map(String) : [],
       order: Number(data.order ?? 999),
     }
   })

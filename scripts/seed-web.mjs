@@ -16,7 +16,7 @@ import {
   setDoc,
 } from 'firebase/firestore'
 import { readEnv } from './read-env.mjs'
-import { categories, checklists, notices, faqEntries, contacts } from './seed-data.mjs'
+import { categories, checklists, notices, faqEntries, contacts, departments } from './seed-data.mjs'
 
 const env = readEnv()
 
@@ -109,7 +109,7 @@ const upsertAll = async (name, rows) => {
 if (reset) {
   console.log('기존 데이터 삭제 중(--reset)…')
   // 옛 keywordPresets 포함, 관리 대상 컬렉션을 비운다. (inquiries·conversations는 건드리지 않음)
-  for (const name of ['keywordPresets', 'categories', 'checklists', 'notices', 'faqEntries', 'contacts']) {
+  for (const name of ['keywordPresets', 'categories', 'checklists', 'notices', 'faqEntries', 'contacts', 'departments']) {
     await clearCollection(name)
   }
 }
@@ -119,6 +119,7 @@ await upsertAll('checklists', checklists)
 await upsertAll('notices', notices)
 await upsertAll('faqEntries', faqEntries)
 await upsertAll('contacts', contacts)
+await upsertAll('departments', departments)
 
 if (failures.length > 0) {
   console.warn('\n일부 작업이 실패했습니다:')

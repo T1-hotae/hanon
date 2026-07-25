@@ -48,6 +48,15 @@ export type FaqEntry = {
   updatedAt: number
 }
 
+// 학과 목록. 관리자 앱/seed로 Firestore `departments`에 저장하고, 상담사 연결 폼에서 선택지로 쓴다.
+export type Department = {
+  id: string
+  label: string
+  // 학생이 줄임말로 입력해도 매칭되도록 하는 별칭(예: ICT융합공학부 ← 'ict', 'ict융합').
+  aliases: string[]
+  order: number
+}
+
 export type ChatMessage = {
   id: string
   from: 'student' | 'admin' | 'bot' | 'ai'
@@ -61,6 +70,9 @@ export type Conversation = {
   studentId: string
   studentName: string
   studentNumber: string
+  studentDepartment: string
+  // 학과 목록에서 고른 경우의 표준 id(자유 입력이면 빈 문자열).
+  studentDepartmentId: string
   category: CategoryId
   status: 'open' | 'answered'
   lastMessage: string

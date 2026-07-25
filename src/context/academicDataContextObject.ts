@@ -3,6 +3,7 @@ import type {
   Category,
   Checklist,
   Contact,
+  Department,
   FaqEntry,
   Notice,
 } from '../types/academic'
@@ -12,6 +13,7 @@ export type AcademicDataValue = {
   faqEntries: FaqEntry[]
   checklists: Checklist[]
   contacts: Contact[]
+  departments: Department[]
   notices: Notice[]
   loading: boolean
   firebaseUnavailable: boolean
