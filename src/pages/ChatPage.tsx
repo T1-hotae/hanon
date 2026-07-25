@@ -93,6 +93,7 @@ export function ChatPage() {
   const [starting, setStarting] = useState(false)
   const [aiThinking, setAiThinking] = useState(false)
   const [escalateOpen, setEscalateOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(() => searchParams.get('history') === '1')
   // 상담사 대화 생성 실패 안내(모달 안에 표시). 대화 내용과 섞이지 않게 별도 상태로 둔다.
   const [escalateError, setEscalateError] = useState<string | null>(null)
   const [queuedMessage, setQueuedMessage] = useState<string | null>(null)
@@ -101,6 +102,14 @@ export function ChatPage() {
   const didInitRef = useRef(false)
 
   const localMode = conversationId === LOCAL
+
+  const closeHistory = () => {
+    setHistoryOpen(false)
+    if (!searchParams.has('history')) return
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('history')
+    setSearchParams(nextParams, { replace: true })
+  }
 
   const pushLocal = (from: ChatMessage['from'], text: string) => {
     setMessages((current) => [...current, { id: uid(), from, text, createdAt: Date.now() }])
@@ -150,6 +159,11 @@ export function ChatPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading])
+
+  // 상단 채팅 아이콘으로 들어오면 모바일에서는 이전 채팅 기록을 바로 펼친다.
+  useEffect(() => {
+    if (searchParams.get('history') === '1') setHistoryOpen(true)
+  }, [searchParams])
 
   // 메시지 실시간 구독 (로컬 모드는 제외)
   useEffect(() => {
@@ -306,6 +320,7 @@ export function ChatPage() {
 
   // 채팅 기록에서 지난 대화 선택 → 그 대화로 이어보기
   const selectConversation = (item: ConversationSummary) => {
+    closeHistory()
     if (starting || item.id === conversationId) return
     const nextMode: ChatMode = item.needsHuman ? 'human' : 'ai'
     setEscalateOpen(false)
@@ -318,6 +333,7 @@ export function ChatPage() {
 
   const startNewConversation = () => {
     if (starting) return
+    closeHistory()
     void startConversation()
   }
 
@@ -581,6 +597,37 @@ export function ChatPage() {
           </div>
         </div>
       </div>
+
+      {historyOpen && (
+        <div className={styles.chatHistoryDrawerBackdrop}>
+          <button
+            type="button"
+            className={styles.chatHistoryDrawerDismiss}
+            onClick={closeHistory}
+            aria-label="채팅 기록 닫기"
+          />
+          <section
+            className={styles.chatHistoryDrawer}
+            role="dialog"
+            aria-modal="true"
+            aria-label="이전 채팅 기록"
+          >
+            <div className={styles.chatHistoryDrawerToolbar}>
+              <strong>이전 채팅 기록</strong>
+              <button type="button" onClick={closeHistory} aria-label="채팅 기록 닫기">
+                ×
+              </button>
+            </div>
+            <ChatHistoryPanel
+              items={conversations}
+              activeId={conversationId}
+              disabled={localMode || starting}
+              onSelect={selectConversation}
+              onNew={startNewConversation}
+            />
+          </section>
+        </div>
+      )}
 
       {escalateOpen && (
         <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-label="상담사 연결">

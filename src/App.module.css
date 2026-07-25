@@ -3540,6 +3540,13 @@ mark {
   width: 50px;
 }
 
+.headerActions {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 10px;
+}
+
 .menuButton:hover {
   background: #ffedc7;
   border-color: #ffd27a;
@@ -3549,11 +3556,18 @@ mark {
 }
 
 .menuButton svg {
+  display: block;
   fill: none;
+  flex: none;
   height: 29px;
+  overflow: visible;
   stroke: currentColor;
   stroke-linecap: round;
   width: 29px;
+}
+
+.chatHistoryDrawerBackdrop {
+  display: none;
 }
 
 .shellHome {
@@ -3952,23 +3966,29 @@ mark {
 @media (max-width: 720px) {
   .header {
     display: flex;
-    min-height: 76px;
-    padding: 12px 18px;
+    gap: 7px;
+    min-height: 56px;
+    padding: 7px 12px;
+  }
+
+  .logo {
+    gap: 6px;
+    min-width: 0;
   }
 
   .logoMascot {
-    height: 52px;
-    width: 58px;
+    height: 38px;
+    width: 42px;
   }
 
   .logoMascot img {
-    height: 78px;
-    transform: translateY(-4px);
-    width: 78px;
+    height: 58px;
+    transform: translateY(-2px);
+    width: 58px;
   }
 
   .logoName {
-    font-size: 22px;
+    font-size: 16px;
   }
 
   .logoDivider {
@@ -3976,99 +3996,155 @@ mark {
   }
 
   .menuButton {
-    height: 42px;
-    width: 42px;
+    height: 36px;
+    width: 36px;
+  }
+
+  .menuButton svg {
+    height: 25px;
+    width: 25px;
+  }
+
+  .headerActions {
+    gap: 6px;
   }
 
   .shellHome {
-    padding-left: 16px;
-    padding-right: 16px;
+    overflow-x: hidden;
+    padding: 4px 20px 56px;
+  }
+
+  .homePage {
+    margin: 0 auto;
+    max-width: 100%;
   }
 
   .shellHome .hero {
-    padding-top: 10px;
+    padding-top: 5px;
   }
 
   .shellHome .heroTitle {
-    font-size: clamp(34px, 10vw, 44px);
+    font-size: 30px;
+    line-height: 1.12;
   }
 
   .shellHome .heroSubtitle {
-    max-width: 310px;
+    font-size: clamp(9.5px, 3vw, 11.5px);
+    letter-spacing: -0.035em;
+    line-height: 1.35;
+    margin-top: 5px;
+    max-width: none;
+    white-space: nowrap;
   }
 
   .shellHome .heroMascotWrap {
-    margin: -20px auto 12px;
-    min-height: 230px;
+    margin: -9px auto 3px;
+    min-height: 150px;
+  }
+
+  .shellHome .heroMascotWrap::before {
+    height: 180px;
+    width: 250px;
   }
 
   .shellHome .heroMascot {
-    height: 230px;
-    width: 320px;
+    height: 150px;
+    justify-self: center;
+    width: min(210px, 100%);
   }
 
   .shellHome .heroMascotImage,
   .shellHome .heroMascotOverlay {
-    transform: translateY(-55px);
+    transform: translateY(-36px);
+  }
+
+  .heroSparkle {
+    font-size: 18px;
+    text-shadow: 14px 14px 0 #ffc447;
   }
 
   .heroSparkleLeft {
-    left: 3%;
+    left: 8%;
   }
 
   .heroSparkleRight {
-    right: 3%;
+    right: 8%;
   }
 
   .shellHome .heroSearch {
-    min-height: 72px;
-    padding: 8px 9px 8px 20px;
+    gap: 10px;
+    min-height: 54px;
+    padding: 6px 7px 6px 15px;
+  }
+
+  .shellHome .heroSearchIcon svg {
+    height: 20px;
+    width: 20px;
+  }
+
+  .shellHome .heroSearch input {
+    transform: translateY(-1px);
+  }
+
+  .shellHome .heroSearch input::placeholder {
+    font-size: 12px;
+    letter-spacing: -0.025em;
   }
 
   .shellHome .heroSearch button {
-    height: 52px;
-    width: 52px;
+    height: 42px;
+    width: 42px;
   }
 
   .shellHome .categorySlider {
-    margin-top: 28px;
+    margin: 14px auto 18px;
+    width: 100%;
   }
 
   .shellHome .categoryCards {
+    gap: 9px;
     grid-template-columns: 1fr;
   }
 
   .shellHome .categoryCard {
     display: grid;
-    gap: 4px 17px;
-    grid-template-columns: 64px 1fr;
+    gap: 2px 12px;
+    grid-template-columns: 44px minmax(0, 1fr);
     justify-items: start;
-    min-height: 0;
-    padding: 19px 22px;
+    min-height: 76px;
+    padding: 10px 14px;
     text-align: left;
   }
 
   .shellHome .categoryCardIcon {
     grid-row: 1 / 3;
-    height: 60px;
-    width: 60px;
+    height: 44px;
+    width: 44px;
+  }
+
+  .shellHome .categoryCardIcon svg {
+    height: 26px;
+    width: 26px;
   }
 
   .shellHome .categoryCard strong {
     align-self: end;
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .shellHome .categoryCard > span:last-child {
     align-self: start;
+    font-size: 12.5px;
+    line-height: 1.35;
     max-width: none;
   }
 
   .popularSearches {
     align-items: flex-start;
-    border-radius: 20px;
+    border-radius: 16px;
     flex-direction: column;
-    padding: 12px 14px;
+    min-height: 0;
+    padding: 9px 11px;
   }
 
   .popularSearchesTitle {
@@ -4089,35 +4165,132 @@ mark {
   }
 
   .homeLowerContent {
-    margin-top: 32px;
+    gap: 16px;
+    margin-top: 22px;
+  }
+}
+
+@media (max-width: 960px) {
+  .chatHistoryDrawerBackdrop {
+    display: block;
+    inset: 0;
+    position: fixed;
+    z-index: 50;
+  }
+
+  .chatHistoryDrawerDismiss {
+    background: rgba(43, 36, 30, 0.3);
+    border: 0;
+    cursor: pointer;
+    inset: 0;
+    padding: 0;
+    position: absolute;
+    width: 100%;
+  }
+
+  .chatHistoryDrawer {
+    background: var(--color-surface);
+    box-shadow: -18px 0 42px rgba(43, 36, 30, 0.18);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin-left: auto;
+    max-width: calc(100% - 28px);
+    position: relative;
+    width: 320px;
+    z-index: 1;
+  }
+
+  .chatHistoryDrawerToolbar {
+    align-items: center;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    flex: none;
+    justify-content: space-between;
+    min-height: 58px;
+    padding: 10px 12px 10px 18px;
+  }
+
+  .chatHistoryDrawerToolbar strong {
+    font-size: 16px;
+  }
+
+  .chatHistoryDrawerToolbar button {
+    align-items: center;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    color: var(--color-text);
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    font-size: 24px;
+    height: 38px;
+    justify-content: center;
+    line-height: 1;
+    padding: 0 0 3px;
+    width: 38px;
+  }
+
+  .chatHistoryDrawer .chatHistoryPanel {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    display: flex;
+    flex: 1;
+    width: 100%;
   }
 }
 
 @media (max-width: 440px) {
+  .header {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .logoMascot {
+    height: 36px;
+    width: 38px;
+  }
+
+  .logoMascot img {
+    height: 54px;
+    width: 54px;
+  }
+
+  .logoName {
+    font-size: 15.5px;
+  }
+
+  .menuButton {
+    height: 35px;
+    width: 35px;
+  }
+
   .logoSub {
     display: none;
   }
 
   .shellHome .heroSearch {
-    gap: 10px;
-    padding-left: 17px;
+    gap: 8px;
+    padding-left: 13px;
   }
 
   .shellHome .heroSearchIcon svg {
-    height: 24px;
-    width: 24px;
+    height: 19px;
+    width: 19px;
   }
 
   .shellHome .heroSearch input {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .shellHome .heroSearch button {
-    height: 48px;
-    width: 48px;
+    height: 40px;
+    width: 40px;
   }
 
   .homeLowerContent .section {
-    padding: 19px 16px;
+    padding: 16px 14px;
   }
 }
