@@ -7,7 +7,22 @@ import { CategoryIcon } from './categoryIcons'
 import styles from '../App.module.css'
 
 // 한 페이지에 보여줄 카테고리 카드 수
-const PAGE_SIZE = 4
+const PAGE_SIZE = 3
+
+const CARD_CONTENT: Record<string, { label: string; description: string }> = {
+  transfer: {
+    label: '전과/전부전과',
+    description: '전과·전부전과 신청 자격 및 절차 안내',
+  },
+  course: {
+    label: '수강신청',
+    description: '수강신청 일정 및 방법 안내',
+  },
+  leave: {
+    label: '휴학',
+    description: '휴학 신청 절차 및 제출 서류 안내',
+  },
+}
 
 const CheckMark = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
@@ -105,20 +120,27 @@ export function TopTabs() {
         )}
 
         <nav className={styles.categoryCards} aria-label="학사 항목 바로가기">
-          {visibleCards.map((category) => (
-            <button
-              type="button"
-              key={category.id}
-              className={styles.categoryCard}
-              onClick={() => openModal(category)}
-            >
-              <span className={styles.categoryCardIcon} aria-hidden="true">
-                <CategoryIcon category={category} />
-              </span>
-              <strong>{category.label}</strong>
-              {category.description && <span>{category.description}</span>}
-            </button>
-          ))}
+          {visibleCards.map((category) => {
+            const content = CARD_CONTENT[category.id]
+
+            return (
+              <button
+                type="button"
+                key={category.id}
+                className={styles.categoryCard}
+                data-category={category.id}
+                onClick={() => openModal(category)}
+              >
+                <span className={styles.categoryCardIcon} aria-hidden="true">
+                  <CategoryIcon category={category} />
+                </span>
+                <strong>{content?.label ?? category.label}</strong>
+                {(content?.description ?? category.description) && (
+                  <span>{content?.description ?? category.description}</span>
+                )}
+              </button>
+            )
+          })}
         </nav>
 
         {hasSlider && (

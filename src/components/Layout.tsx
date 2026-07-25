@@ -3,14 +3,22 @@ import { Header } from './Header'
 import { useAcademicData } from '../context/useAcademicData'
 import styles from '../App.module.css'
 
-export function Layout({ children, fullHeight = false }: { children: ReactNode; fullHeight?: boolean }) {
+export function Layout({
+  children,
+  fullHeight = false,
+  home = false,
+}: {
+  children: ReactNode
+  fullHeight?: boolean
+  home?: boolean
+}) {
   const { firebaseUnavailable } = useAcademicData()
 
   return (
     <>
       <Header />
       <main
-        className={`${styles.shell} ${fullHeight ? styles.shellFull : ''}`}
+        className={`${styles.shell} ${fullHeight ? styles.shellFull : ''} ${home ? styles.shellHome : ''}`}
         {...(fullHeight ? { 'data-full-height': '' } : {})}
       >
         {firebaseUnavailable && (
