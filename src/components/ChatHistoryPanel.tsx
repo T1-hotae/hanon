@@ -22,9 +22,20 @@ const formatWhen = (timestamp: number): string => {
   return `${date.getMonth() + 1}.${String(date.getDate()).padStart(2, '0')}`
 }
 
+// AI 채팅과 상담사 채팅은 완전히 별개의 대화이므로 목록도 두 묶음으로 나눠서 보여준다.
+const GROUPS = [
+  { key: 'ai', label: 'AI 상담', isHuman: false },
+  { key: 'human', label: '상담사 상담', isHuman: true },
+] as const
+
 // 왼쪽 사이드: 지난 대화 목록(채팅 기록). 클릭하면 해당 대화로 이어서 볼 수 있다.
-// 학사 항목으로 구분하지 않으므로 항목 라벨 대신 상담 종류(AI/상담사)만 보여준다.
+// '+ 새 대화'는 항상 AI 대화를 새로 시작한다(상담사 대화는 채팅 화면의 '상담사 연결'로만 열린다).
 export function ChatHistoryPanel({ items, activeId, disabled, onSelect, onNew }: Props) {
+  const groups = GROUPS.map((group) => ({
+    ...group,
+    items: items.filter((item) => item.needsHuman === group.isHuman),
+  })).filter((group) => group.items.length > 0)
+
   return (
     <aside className={styles.chatHistoryPanel} aria-label="채팅 기록">
       <div className={styles.chatHistoryHead}>
@@ -50,37 +61,47 @@ export function ChatHistoryPanel({ items, activeId, disabled, onSelect, onNew }:
         </button>
       </div>
 
-      {items.length === 0 ? (
+      {groups.length === 0 ? (
         <p className={styles.chatHistoryEmpty}>
           {disabled
             ? '데모 모드에서는 대화가 저장되지 않습니다.'
             : '아직 지난 대화가 없어요. 문무니에게 무엇이든 물어보세요!'}
         </p>
       ) : (
-        <ul className={styles.chatHistoryList}>
-          {items.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                className={`${styles.chatHistoryItem} ${item.id === activeId ? styles.chatHistoryItemActive : ''}`}
-                onClick={() => onSelect(item)}
-                aria-current={item.id === activeId ? 'true' : undefined}
-              >
-                <span className={styles.chatHistoryItemTop}>
-                  <span
-                    className={`${styles.chatHistoryCategory} ${
-                      item.needsHuman ? styles.chatHistoryCategoryHuman : ''
-                    }`}
-                  >
-                    {item.needsHuman ? '상담사 상담' : 'AI 상담'}
-                  </span>
-                  <span className={styles.chatHistoryWhen}>{formatWhen(item.lastMessageAt)}</span>
-                </span>
-                <span className={styles.chatHistoryPreview}>{item.lastMessage}</span>
-              </button>
-            </li>
+        <div className={styles.chatHistoryScroll}>
+          {groups.map((group) => (
+            <section
+              key={group.key}
+              className={`${styles.chatHistoryGroup} ${
+                group.isHuman ? styles.chatHistoryGroupHuman : ''
+              }`}
+            >
+              <h4 className={styles.chatHistoryGroupLabel}>
+                {group.label}
+                <span>{group.items.length}</span>
+              </h4>
+              <ul className={styles.chatHistoryList}>
+                {group.items.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      className={`${styles.chatHistoryItem} ${
+                        item.id === activeId ? styles.chatHistoryItemActive : ''
+                      }`}
+                      onClick={() => onSelect(item)}
+                      aria-current={item.id === activeId ? 'true' : undefined}
+                    >
+                      <span className={styles.chatHistoryPreview}>{item.lastMessage}</span>
+                      <span className={styles.chatHistoryWhen}>
+                        {formatWhen(item.lastMessageAt)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
     </aside>
   )

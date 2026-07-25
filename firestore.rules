@@ -81,7 +81,8 @@ service cloud.firestore {
           && d.studentDepartment.size() >= 2 && d.studentDepartment.size() <= 30;
       }
 
-      // 대화 시작 시점(AI 상담)에는 식별정보가 비어 있는 것이 정상이다.
+      // AI 상담 대화는 식별정보가 비어 있는 것이 정상이다.
+      // 상담사 대화는 별개의 새 대화로 만들어지며 생성 시점부터 식별정보가 채워진다.
       function identityBlank(d) {
         return d.studentName == '' && d.studentNumber == '' && d.studentDepartment == '';
       }
@@ -97,7 +98,7 @@ service cloud.firestore {
       // AI 상담(needsHuman == false)은 DB 수준에서 상담사에게 노출되지 않는다.
       // (규칙은 필터가 아니므로, 관리자 앱 쿼리도 where('needsHuman','==',true)로 맞춰야 한다.)
       allow read: if (isAdmin() && resource.data.needsHuman == true) || ownsConversation();
-      // 학생이 식별정보를 바꾸는 경우(= 상담사 연결)에만 형식을 강제한다.
+      // 학생 앱은 식별정보를 create 시점에만 채우지만, update로 바꾸려는 경우에도 형식을 강제한다.
       // 읽음 처리·메시지 메타 갱신 등 식별정보를 건드리지 않는 update는 그대로 통과한다.
       allow update: if isAdmin()
         || (ownsConversation() && (

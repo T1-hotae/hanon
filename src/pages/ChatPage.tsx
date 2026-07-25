@@ -6,8 +6,8 @@ import { useAcademicData } from '../context/useAcademicData'
 import {
   askAi,
   createConversation,
+  createHumanConversation,
   ensureAnonymousAuth,
-  escalateToHuman,
   markConversationReadByStudent,
   sendStudentMessage,
   setConversationCategory,
@@ -75,7 +75,8 @@ export function ChatPage() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   // 채팅은 학사 항목을 구분하지 않는다. 무엇을 물어도 전체 학사 자료로 답한다.
-  // 모든 대화는 AI로 시작하고, '상담사 연결'로 관리자 문의(human)로 승격한다.
+  // AI 채팅과 상담사 채팅은 완전히 분리된 별개의 대화다. 한 대화의 mode는 끝까지 바뀌지 않는다.
+  // '상담사 연결'을 누르면 지금 AI 대화는 그대로 두고 상담사 전용 새 대화를 열어 그쪽으로 이동한다.
   const [mode, setMode] = useState<ChatMode>('ai')
   const [studentName, setStudentName] = useState('')
   const [studentNumber, setStudentNumber] = useState('')
@@ -89,6 +90,8 @@ export function ChatPage() {
   const [starting, setStarting] = useState(false)
   const [aiThinking, setAiThinking] = useState(false)
   const [escalateOpen, setEscalateOpen] = useState(false)
+  // 상담사 대화 생성 실패 안내(모달 안에 표시). 대화 내용과 섞이지 않게 별도 상태로 둔다.
+  const [escalateError, setEscalateError] = useState<string | null>(null)
   const [queuedMessage, setQueuedMessage] = useState<string | null>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const inquiryLoggedRef = useRef(false)
@@ -323,6 +326,7 @@ export function ChatPage() {
     setStudentNumber('')
     setStudentDepartment('')
     setIdentityErrors({})
+    setEscalateError(null)
     setEscalateOpen(true)
   }
 
@@ -336,6 +340,7 @@ export function ChatPage() {
       [field]: validateIdentityField(field, value, departments),
     }))
 
+  // 지금 AI 대화는 건드리지 않고, 상담사 전용 새 대화를 만들어 그 대화로 이동한다.
   const submitEscalation = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!conversationId || conversationId === LOCAL || starting) return
@@ -348,10 +353,25 @@ export function ChatPage() {
     if (!ok) return
 
     setStarting(true)
-    await escalateToHuman(conversationId, value)
-    await sendStudentMessage(conversationId, 'bot', '상담사에게 연결했어요. 확인 후 순차적으로 답변드립니다.')
+    setEscalateError(null)
+    const humanId = await createHumanConversation(value, conversationId)
+    if (!humanId) {
+      setEscalateError('지금은 상담사 연결이 어려워요. 잠시 후 다시 시도해 주세요.')
+      setStarting(false)
+      return
+    }
+
+    // 상담사 대화는 문의 분류를 새로 집계한다(AI 대화와 별개의 문의로 본다).
+    inquiryLoggedRef.current = false
+    setMessages([])
     setMode('human')
-    saveSession({ conversationId, mode: 'human', inquiryLogged: inquiryLoggedRef.current })
+    setConversationId(humanId)
+    saveSession({ conversationId: humanId, mode: 'human' })
+    await sendStudentMessage(
+      humanId,
+      'bot',
+      '상담사 전용 채팅을 열었어요. 문의 내용을 남겨 주시면 상담사가 확인 후 순차적으로 답변드립니다.',
+    )
     setEscalateOpen(false)
     setStarting(false)
   }
@@ -363,6 +383,9 @@ export function ChatPage() {
 
   // 형식은 맞지만 입학연도(앞 4자리)가 어색한 학번은 경고만 하고 제출은 막지 않는다.
   const numberWarning = studentNumberWarning(studentNumber)
+
+  // 상담사 채팅은 헤더·아바타·안내 문구를 모두 다르게 보여 AI 채팅과 헷갈리지 않게 한다.
+  const isHuman = mode === 'human'
 
   return (
     <Layout fullHeight>
@@ -376,22 +399,30 @@ export function ChatPage() {
         />
 
         <div className={styles.chatPage}>
-          <div className={styles.chatPageHeader}>
+          <div
+            className={`${styles.chatPageHeader} ${isHuman ? styles.chatPageHeaderHuman : ''}`}
+          >
             <div className={styles.chatPageHeaderInfo}>
               <Link to="/" className={styles.chatPageBack} aria-label="홈으로">
                 ‹
               </Link>
               <span className={styles.chatPageAvatar}>
-                <img src={munmuniMascot} alt="" aria-hidden="true" />
+                {isHuman ? (
+                  <span className={styles.chatPageAvatarAdmin}>상담</span>
+                ) : (
+                  <img src={munmuniMascot} alt="" aria-hidden="true" />
+                )}
               </span>
               <span className={styles.chatPageTitle}>
-                <strong>문무니 AI 상담</strong>
+                <strong>{isHuman ? '상담사 상담' : '문무니 AI 상담'}</strong>
                 <span>
-                  {mode === 'ai' ? 'AI가 학사 정보를 안내해 드려요' : '상담사가 확인 후 답변드려요'}
+                  {isHuman ? '상담사가 확인 후 답변드려요' : 'AI가 학사 정보를 안내해 드려요'}
                 </span>
               </span>
             </div>
-            {mode === 'ai' ? (
+            {isHuman ? (
+              <span className={styles.chatPageHumanBadge}>상담사 연결됨</span>
+            ) : (
               <button
                 type="button"
                 className={styles.chatPageEscalate}
@@ -400,8 +431,6 @@ export function ChatPage() {
               >
                 상담사 연결
               </button>
-            ) : (
-              <span className={styles.chatPageHumanBadge}>상담사 연결됨</span>
             )}
           </div>
 
@@ -413,12 +442,18 @@ export function ChatPage() {
           >
             {messages.length === 0 && !aiThinking && (
               <div className={styles.chatWelcome}>
-                <img src={munmuniMascot} alt="문무니" className={styles.chatWelcomeMascot} />
-                <strong>{mode === 'ai' ? '무엇이든 물어보세요!' : '문의 내용을 남겨 주세요'}</strong>
+                {isHuman ? (
+                  <span className={styles.chatWelcomeAdmin} aria-hidden="true">
+                    상담
+                  </span>
+                ) : (
+                  <img src={munmuniMascot} alt="문무니" className={styles.chatWelcomeMascot} />
+                )}
+                <strong>{isHuman ? '상담사 전용 채팅이에요' : '무엇이든 물어보세요!'}</strong>
                 <p>
-                  {mode === 'ai'
-                    ? '수강신청·장학금·졸업요건 등 학사 관련 궁금한 점을 아래에 입력해 주세요.'
-                    : '문의 내용을 남겨 주세요. 상담사가 확인 후 순차적으로 답변드립니다.'}
+                  {isHuman
+                    ? '문의 내용을 남겨 주세요. 상담사가 확인 후 순차적으로 답변드립니다. AI 답변은 오지 않아요.'
+                    : '수강신청·장학금·졸업요건 등 학사 관련 궁금한 점을 아래에 입력해 주세요.'}
                 </p>
               </div>
             )}
@@ -471,7 +506,7 @@ export function ChatPage() {
               <input
                 value={customText}
                 onChange={(event) => setCustomText(event.target.value)}
-                placeholder={mode === 'ai' ? '궁금한 내용을 입력해 주세요' : '상담사에게 남길 내용을 입력해 주세요'}
+                placeholder={isHuman ? '상담사에게 남길 내용을 입력해 주세요' : '궁금한 내용을 입력해 주세요'}
                 aria-label="문의 내용"
                 autoFocus
               />
@@ -501,7 +536,8 @@ export function ChatPage() {
           <div className={styles.modal}>
             <h2>상담사 연결</h2>
             <p className={styles.contactHours}>
-              상담사 연결 전 학번, 학과, 이름을 알려주세요. 상담사가 확인 후 답변드립니다.
+              학번, 학과, 이름을 알려주세요. 지금 AI 대화와 별개로 <strong>상담사 전용 채팅</strong>이
+              새로 열립니다.
             </p>
             <form className={styles.chatIdentityForm} onSubmit={submitEscalation} noValidate>
               <div className={styles.chatIdentityField}>
@@ -583,6 +619,8 @@ export function ChatPage() {
                 </p>
               </div>
 
+              {escalateError && <p className={styles.fieldError}>{escalateError}</p>}
+
               <div className={styles.modalActions}>
                 <button type="button" onClick={() => setEscalateOpen(false)}>
                   취소
@@ -596,7 +634,7 @@ export function ChatPage() {
                     !studentName.trim()
                   }
                 >
-                  {starting ? '연결하는 중…' : '상담사 연결'}
+                  {starting ? '채팅 여는 중…' : '상담사 채팅 열기'}
                 </button>
               </div>
             </form>

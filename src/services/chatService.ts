@@ -54,8 +54,9 @@ export const ensureAnonymousAuth = async (): Promise<string | null> => {
   }
 }
 
-// 새 대화 생성. Firestore 미설정 시 로컬 임시 id를 반환한다.
-// 학생 식별정보(학번·학과·이름)는 이 시점에 받지 않고, '상담사 연결' 시 escalateToHuman에서 채운다.
+// 새 AI 대화 생성. Firestore 미설정 시 null(로컬 데모 모드)을 반환한다.
+// AI 대화와 상담사 대화는 완전히 분리된 별개의 대화다. needsHuman은 생성 이후 바뀌지 않는다.
+// 학생 식별정보(학번·학과·이름)는 AI 대화에서 받지 않는다(상담사 대화에서만 받는다).
 // 학사 항목(category)도 시작 시점에 고르지 않는다. 첫 질문에서 추정해 setConversationCategory로 채운다.
 export const createConversation = async (): Promise<string | null> => {
   if (!firestore) return null
@@ -77,6 +78,35 @@ export const createConversation = async (): Promise<string | null> => {
     unreadForStudent: false,
     needsHuman: false,
     studentMessageCount: 0,
+  })
+  return ref.id
+}
+
+// 상담사 전용 대화 생성. AI 대화를 승격시키는 대신 항상 새 대화로 시작해 둘을 섞지 않는다.
+// 학생 식별정보는 처음부터 채워 두어 관리자가 첫 문의와 함께 바로 확인할 수 있게 한다.
+// unreadForAdmin은 여기서 올리지 않는다. 학생이 실제로 문의를 남길 때 sendStudentMessage가 올린다.
+export const createHumanConversation = async (
+  identity: StudentIdentity,
+  sourceConversationId?: string,
+): Promise<string | null> => {
+  if (!firestore) return null
+  const studentId = await ensureAnonymousAuth()
+  if (!studentId) return null
+
+  const ref = await addDoc(collection(firestore, 'conversations'), {
+    studentId,
+    ...identity,
+    category: '',
+    status: 'open',
+    lastMessage: '',
+    lastMessageAt: serverTimestamp(),
+    createdAt: serverTimestamp(),
+    unreadForAdmin: false,
+    unreadForStudent: false,
+    needsHuman: true,
+    studentMessageCount: 0,
+    // 어느 AI 대화에서 넘어왔는지 추적용(학생 화면에는 쓰지 않는다).
+    ...(sourceConversationId ? { sourceConversationId } : {}),
   })
   return ref.id
 }
@@ -189,24 +219,6 @@ export const setConversationCategory = async (
     await setDoc(doc(firestore, 'conversations', conversationId), { category }, { merge: true })
   } catch (error) {
     console.warn('대화 분류 저장에 실패했습니다.', error)
-  }
-}
-
-// AI가 답하기 어려운 문의를 관리자에게 넘긴다.
-// AI 대화에서 승격할 때는 학생 식별정보(학번·학과·이름)를 함께 병합해 관리자에게 전달한다.
-export const escalateToHuman = async (
-  conversationId: string,
-  identity?: StudentIdentity,
-): Promise<void> => {
-  if (!firestore) return
-  try {
-    await setDoc(
-      doc(firestore, 'conversations', conversationId),
-      { needsHuman: true, unreadForAdmin: true, ...(identity ?? {}) },
-      { merge: true },
-    )
-  } catch (error) {
-    console.warn('상담원 연결 처리에 실패했습니다.', error)
   }
 }
 
