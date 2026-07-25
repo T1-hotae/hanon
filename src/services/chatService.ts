@@ -106,6 +106,41 @@ export const sendStudentMessage = async (
   })
 }
 
+export type ConversationSummary = {
+  id: string
+  category: CategoryId
+  lastMessage: string
+  lastMessageAt: number
+  needsHuman: boolean
+}
+
+// 현재(익명) 학생의 대화 목록을 실시간 구독한다. 오른쪽 '채팅 기록' 패널에 사용.
+// 복합 색인을 피하려고 studentId 필터만 서버에서 걸고 정렬은 클라이언트에서 한다.
+export const subscribeStudentConversations = (
+  studentId: string,
+  onChange: (items: ConversationSummary[]) => void,
+): (() => void) => {
+  if (!firestore) return () => {}
+  const conversationsRef = collection(firestore, 'conversations')
+  return onSnapshot(query(conversationsRef, where('studentId', '==', studentId)), (snapshot) => {
+    const items = snapshot.docs
+      .map((docSnapshot): ConversationSummary => {
+        const data = docSnapshot.data()
+        return {
+          id: docSnapshot.id,
+          category: String(data.category ?? '') as CategoryId,
+          lastMessage: String(data.lastMessage ?? ''),
+          lastMessageAt: toMillis(data.lastMessageAt),
+          needsHuman: Boolean(data.needsHuman),
+        }
+      })
+      // 아직 아무 메시지도 없는 빈 대화는 목록에서 숨긴다.
+      .filter((item) => item.lastMessage.trim().length > 0)
+      .sort((a, b) => b.lastMessageAt - a.lastMessageAt)
+    onChange(items)
+  })
+}
+
 // 대화의 메시지를 실시간 구독. 해제 함수를 반환한다.
 export const subscribeMessages = (
   conversationId: string,

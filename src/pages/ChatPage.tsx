@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ChatInfoPanel } from '../components/ChatInfoPanel'
+import { ChatHistoryPanel } from '../components/ChatHistoryPanel'
 import { Layout } from '../components/Layout'
 import { useAcademicData } from '../context/useAcademicData'
 import {
   askAi,
   createConversation,
+  ensureAnonymousAuth,
   escalateToHuman,
   markConversationReadByStudent,
   sendStudentMessage,
   subscribeMessages,
+  subscribeStudentConversations,
   type AiChatPayload,
+  type ConversationSummary,
 } from '../services/chatService'
 import { createChatInquiry } from '../services/inquiryService'
 import { detectCategory } from '../constants'
@@ -79,6 +82,7 @@ export function ChatPage() {
   // 필드별 오류 문구. 입력 중이 아니라 blur/제출 시점에만 채운다.
   const [identityErrors, setIdentityErrors] = useState<IdentityErrors>({})
   const [conversationId, setConversationId] = useState<string | null>(null)
+  const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [customText, setCustomText] = useState('')
   const [starting, setStarting] = useState(false)
@@ -160,6 +164,20 @@ export function ChatPage() {
     const unsubscribe = subscribeMessages(conversationId, setMessages)
     return unsubscribe
   }, [conversationId])
+
+  // 내(익명) 지난 대화 목록 실시간 구독 → 오른쪽 채팅 기록 패널
+  useEffect(() => {
+    let unsubscribe = () => {}
+    let cancelled = false
+    void ensureAnonymousAuth().then((uid) => {
+      if (!uid || cancelled) return
+      unsubscribe = subscribeStudentConversations(uid, setConversations)
+    })
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [])
 
   // 스크롤 하단 고정 + 읽음 처리
   useEffect(() => {
@@ -283,6 +301,26 @@ export function ChatPage() {
     void startConversation(id)
   }
 
+  // 채팅 기록에서 지난 대화 선택 → 그 대화로 이어보기
+  const selectConversation = (item: ConversationSummary) => {
+    if (starting || item.id === conversationId) return
+    const nextMode: ChatMode = item.needsHuman ? 'human' : 'ai'
+    setEscalateOpen(false)
+    setMessages([])
+    setMode(nextMode)
+    setCategory(item.category)
+    setConversationId(item.id)
+    inquiryLoggedRef.current = true
+    saveSession({ conversationId: item.id, category: item.category, mode: nextMode, inquiryLogged: true })
+  }
+
+  // 새 대화 시작(현재 카테고리 유지, 없으면 기본 카테고리)
+  const startNewConversation = () => {
+    if (starting) return
+    const cat = category ?? defaultCategoryId()
+    if (cat) void startConversation(cat)
+  }
+
   const requestEscalation = () => {
     if (localMode) {
       pushLocal('bot', '데모 모드에서는 상담사 연결이 지원되지 않습니다.')
@@ -332,14 +370,6 @@ export function ChatPage() {
 
   // 형식은 맞지만 입학연도(앞 4자리)가 어색한 학번은 경고만 하고 제출은 막지 않는다.
   const numberWarning = studentNumberWarning(studentNumber)
-
-  // AI 상담 추천 질문 = 해당 카테고리 FAQ 질문
-  const categoryQuestions = category
-    ? faqEntries
-        .filter((faq) => faq.category === category)
-        .slice(0, 6)
-        .map((faq) => ({ id: faq.id, text: faq.question }))
-    : []
 
   return (
     <Layout fullHeight>
@@ -403,7 +433,7 @@ export function ChatPage() {
               <strong>{mode === 'ai' ? '무엇이든 물어보세요!' : '문의 내용을 남겨 주세요'}</strong>
               <p>
                 {mode === 'ai'
-                  ? `${activeCategory?.label ?? '학사'} 관련 궁금한 점을 아래에서 선택하거나 직접 입력해 주세요.`
+                  ? `${activeCategory?.label ?? '학사'} 관련 궁금한 점을 아래에 입력해 주세요.`
                   : `${activeCategory?.label ?? '학사'} 관련 문의 내용을 남겨 주세요. 상담사가 확인 후 순차적으로 답변드립니다.`}
               </p>
             </div>
@@ -453,23 +483,6 @@ export function ChatPage() {
         </div>
 
         <div className={styles.chatPageComposer}>
-          {mode === 'ai' && messages.length === 0 && categoryQuestions.length > 0 && (
-            <div className={styles.chatQuickWrap}>
-              <span className={styles.chatQuickLabel}>추천 질문</span>
-              <div className={styles.chatQuickGrid}>
-                {categoryQuestions.map((question) => (
-                  <button
-                    type="button"
-                    key={question.id}
-                    disabled={aiThinking}
-                    onClick={() => void send(question.text)}
-                  >
-                    {question.text}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
           <form className={styles.chatCustomForm} onSubmit={onCustomSubmit}>
             <input
               value={customText}
@@ -498,7 +511,14 @@ export function ChatPage() {
         </div>
       </div>
 
-        {category && <ChatInfoPanel categoryId={category} />}
+        <ChatHistoryPanel
+          items={conversations}
+          activeId={conversationId}
+          categories={categories}
+          disabled={localMode || starting}
+          onSelect={selectConversation}
+          onNew={startNewConversation}
+        />
       </div>
 
       {escalateOpen && (
