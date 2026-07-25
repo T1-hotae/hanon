@@ -31,15 +31,22 @@
   box-sizing: border-box;
 }
 
+html,
 body {
+  max-width: 100%;
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 #root {
   display: flex;
   flex-direction: column;
+  max-width: 100%;
   min-height: 100dvh;
+  min-width: 0;
+  width: 100%;
 }
 
 /* 채팅 화면에서는 뷰포트 높이를 확정해 페이지 자체 스크롤을 막는다.
@@ -54,6 +61,15 @@ input,
 select,
 textarea {
   letter-spacing: 0;
+}
+
+/* iOS는 16px 미만 입력창에 포커스할 때 화면을 자동 확대한다. */
+@media (max-width: 720px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
 ::selection {
